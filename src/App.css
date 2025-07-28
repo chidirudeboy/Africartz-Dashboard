@@ -1,0 +1,203 @@
+
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@200;300;400;500;600;700;800&family=Nunito+Sans:wght@200;400;600;700;900&display=swap');
+
+
+
+* {
+  /* padding: 0; */
+  /* margin: 0; */
+  -webkit-box-sizing: border-box;
+          box-sizing: border-box;
+  font-family: 'Manrope', sans-serif;
+}
+body {
+  	margin: 0;
+ 	font-family: 'Manrope', sans-serif;
+ /* padding: 0 4rem; */
+}
+
+.tox-promotion{
+	display: none;
+}
+
+.primary-bg{
+	background-color: #fbca07;
+}
+
+.dropzone{
+	width: 100%;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	padding: 20px;
+	border-width: 2px;
+	border-radius: 2px;
+	border-color: #eeeeee;
+	border-style: dashed;
+	background-color: #fafafa;
+	color: #bdbdbd;
+	outline: none;
+	transition: border .24s ease-in-out;
+}
+.dropzone p{
+	cursor: pointer;
+}
+
+/* Login */
+.login-container {
+    background: #dcd798;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+}
+
+.form-control {
+    margin-top: -30px;
+}
+
+.card {
+    padding: 30px 40px;
+    border-radius: 8px;
+    border: 1px solid #DFE0EB;
+    box-sizing: border-box;
+}
+
+.txt {
+    text-align: center;
+    color: #9FA2B4;
+    font-weight: 400;
+    font-size: 14px;
+    line-height: 20px;
+    letter-spacing: 0.3px;
+    padding-bottom: 40px;
+}
+
+.form-control input {
+    border-radius: 5px;
+    border: 1px solid #B2BCCA;
+    outline: none;
+    padding: 10px;
+    margin-bottom: 20px;
+    /* width: 19.5rem; */
+    width: 100%;
+}
+
+.f-password {
+    text-align: center;
+    margin-top: -10px;
+    margin-bottom: 15px;
+}
+
+.f-password .reset-password {
+    font-size: 12px;
+    font-weight: 400;
+    line-height: 13px;
+    letter-spacing: 0.1px;
+    color: #9FA2B4;
+}
+
+.form-btn {
+    background: #4F71F9;
+    box-shadow: 0px 4px 12px rgba(55, 81, 255, 0.24);
+    border-radius: 8px;
+    height: 48px;
+    width: 330px;
+    color: #fff;
+    cursor: pointer;
+    margin-top: -15px;
+}
+
+.sign-up {
+    font-style: normal;
+    font-weight: 400;
+    line-height: 20px;
+    text-align: center;
+    letter-spacing: 0.3px;
+    color: #9FA2B4;
+    margin-bottom: 10px;
+}
+
+.sign-in {
+    color: #4F71F9;
+    /* text-decoration: underline; */
+}
+
+.sign-a {
+    color: #4F71F9;
+}
+
+/* register section */
+.form-container {
+    padding: 2rem 4rem;
+}
+
+.form {
+    /* width: 570px; */
+    background: #FFFFFF;
+    box-shadow: 0px 2px 6px rgba(0, 0, 0, 0.14);
+    border-radius: 4px;
+    padding: 20px 30px;
+}
+
+#first-name,
+#last-name,
+#email,
+#street,
+#city,
+#zip,
+#phone,
+#select,
+#password,
+#confirm-password {
+    border: 1px solid #B2BCCA;
+}
+
+.mx-auto{
+	margin-left: auto;
+	margin-right: auto;
+}
+
+.text-center{
+	text-align: center;
+}
+
+.audio-recorder{
+	margin: 50px;
+	margin-top: 20px;
+	margin-left: auto;
+	margin-right: auto;
+	width: 50px !important;
+	border-radius: 50% !important;
+	background-color: transparent !important;
+}
+
+.audio-recorder.recording{
+	box-shadow: none !important;
+	width: fit-content !important;
+}
+
+.audio-recorder > *{
+	font-weight: bolder !important;
+}
+
+.audio-recorder-mic{
+	height: 26px !important;
+}
+
+.audio-player-container > *{
+	margin: auto;
+}
+
+:where(ol, ul){
+	margin: revert !important;
+	padding: revert !important;
+}
+
+:where(blockquote, dl, dd, h1, h2, h3, h4, h5, h6, hr, figure, p, pre){
+	margin: 5px !important;
+}
+
+.p-dropdown-items{
+	padding: 0 !important;
+}

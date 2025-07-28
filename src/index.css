@@ -1,0 +1,42 @@
+* {
+	scroll-behavior: smooth;
+}
+
+.page-header {
+	background-image: url("../public/hero-bg.jpg");
+	background-position: center;
+	background-size: cover;
+	background-repeat: no-repeat;
+	height: 100vh;
+}
+
+.counter-section {
+	background-image: url("../public/counter-bg.jpg");
+	background-repeat: no-repeat;
+	background-position: center;
+}
+
+.testimonial-section {
+	background-image: url("../public/testimonial-bg.png");
+	background-position: center;
+	background-size: cover;
+	background-repeat: no-repeat;
+}
+
+.cursor-pointer {
+	cursor: pointer;
+}
+
+::-webkit-scrollbar {
+	width: 10px !important;
+}
+
+/* Track */
+::-webkit-scrollbar-track {
+	background: #f1f1f1 !important;
+}
+
+/* Handle */
+::-webkit-scrollbar-thumb {
+	background: #888 !important;
+}

@@ -28,4 +28,4 @@
        
        npm run build
        
- Happy hacking 🥂
+ Happy hacking Thank you 🥂

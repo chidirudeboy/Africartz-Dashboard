@@ -87,6 +87,12 @@ export function GlobalProvider({ children }) {
 		// Pick token from browser cookies
 		let { token: tok, role } = getToken();
 
+		// If no token exists, don't make the API call
+		if (!tok) {
+			setLoading(false);
+			return;
+		}
+
 		fetch(GetAdminProfile, {
 			headers: new Headers({
 				Authorization: `Bearer ${tok}`,
@@ -95,20 +101,24 @@ export function GlobalProvider({ children }) {
 		})
 		.then((res) => res.json())
 		.then((data) => {
-			logUserIn("admin", false);
-			setToken(tok);
-
 			if(data?.status === 'success'){
+				// Only log user in if the API call was successful
+				logUserIn("admin", false);
+				setToken(tok);
 				setUserId(data?.profile?.id);
 				setUsername(data?.profile?.name);
 				setEmail(data?.profile?.email);
-
 				setProfile(data?.profile);
+			} else {
+				// API returned error, remove invalid token
+				removeToken();
 			}
+			setLoading(false);
 		})
 		.catch((err) => {
 			console.error(err);
 			removeToken();
+			setLoading(false);
 		});
 
 		// eslint-disable-next-line

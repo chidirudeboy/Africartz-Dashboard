@@ -44,9 +44,9 @@ const Index = () => {
 					sn: index + 1,
 					apartmentName: apt.apartmentName,
 					apartmentAddress: `${apt.address}, ${apt.city}, ${apt.state}`,
-					agentName: `${apt.agentId.firstName} ${apt.agentId.lastName}`,
-					agentEmail: apt.agentId.email,
-					agentPhone: `+${apt.agentId.phone}`,
+					agentName: apt.agentId ? `${apt.agentId.firstName} ${apt.agentId.lastName}` : "No Agent",
+					agentEmail: apt.agentId?.email || "N/A",
+					agentPhone: apt.agentId?.phone ? `+${apt.agentId.phone}` : "N/A",
 					status: apt.status,
 				}));
 				setApartments(mapped);

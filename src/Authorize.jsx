@@ -13,7 +13,12 @@ import Apartments from "./Pages/Admin/Apartments/Index";
 import Agent from "./Pages/Admin/Agents/Index";
 
 const Authorize = () => {
-	const { isLoggedIn } = useContext(GlobalContext);
+	const { isLoggedIn, isLoading } = useContext(GlobalContext);
+
+	// Show loading while checking authentication
+	if (isLoading) {
+		return <div>Loading...</div>;
+	}
 
 	return (
 		<Routes>

@@ -62,7 +62,7 @@ function AdminLogin() {
 								notify("Success", "Redirecting to your dashboard...");
 
 								// Store tokens consistently
-								localStorage.setItem("authToken", result.refreshToken);  // Primary storage
+								localStorage.setItem("authToken", result.accessToken);  // Primary storage
 								localStorage.setItem("refreshToken", result.refreshToken); // If needed for refresh
 
 								// Also store in your custom store if needed
@@ -172,7 +172,7 @@ function AdminLogin() {
 						w="100%"
 						mb="4"
 					>
-						Log In Here
+						Log In Here Right Now
 					</Button>
 
 					<Text textAlign="center" fontSize="sm">

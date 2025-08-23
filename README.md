@@ -235,4 +235,4 @@ For support and questions:
 
 ---
 
-**Built with ❤️ for AfricArtz Platform**
+**Built with ❤️ for Africartz by the Best Devs**

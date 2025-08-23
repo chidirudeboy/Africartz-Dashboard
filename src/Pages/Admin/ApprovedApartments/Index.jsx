@@ -7,7 +7,6 @@ import {
 	Tabs,
 	Text,
 	useToast,
-	HStack,
 	Modal,
 	ModalOverlay,
 	ModalContent,
@@ -35,15 +34,6 @@ import {
 	TabPanels,
 	Tab,
 	TabPanel,
-	Textarea,
-	FormControl,
-	FormLabel,
-	AlertDialog,
-	AlertDialogBody,
-	AlertDialogFooter,
-	AlertDialogHeader,
-	AlertDialogContent,
-	AlertDialogOverlay,
 } from "@chakra-ui/react";
 import { FaWifi, FaPhoneAlt, FaWhatsapp, FaMapMarkerAlt, FaBed, FaBath, FaUsers, FaChevronLeft, FaChevronRight, FaTimes } from "react-icons/fa";
 import React, { useState, useEffect } from "react";
@@ -51,37 +41,29 @@ import { Column } from "primereact/column";
 import { DataTable } from "primereact/datatable";
 import axios from "axios";
 import {
-	AdminGetPendingApartmentsAPI,
-	AdminGetPendingApartmentByIdAPI,
-	AdminApprovedApartment,
-	AdminRejectApartment,
+	AdminGetApprovedApartmentsAPI,
+	AdminGetApprovedApartmentByIdAPI,
 } from "../../../Endpoints";
 
-const Index = () => {
+const ApprovedApartments = () => {
 	const [loading, setLoading] = useState(false);
-	const [statusLoadingId, setStatusLoadingId] = useState(null);
-	const [apartments, setApartments] = useState([]);
+	const [approvedApartments, setApprovedApartments] = useState([]);
 	const [selectedApartment, setSelectedApartment] = useState(null);
 	const [apartmentDetailsLoading, setApartmentDetailsLoading] = useState(null);
-	const [rejectionReason, setRejectionReason] = useState("");
-	const [approvalNote, setApprovalNote] = useState("");
 	const [selectedMedia, setSelectedMedia] = useState(null);
 	const [currentMediaIndex, setCurrentMediaIndex] = useState(0);
 	const [allMedia, setAllMedia] = useState([]);
 	const { isOpen, onOpen, onClose } = useDisclosure();
-	const { isOpen: isRejectDialogOpen, onOpen: onRejectDialogOpen, onClose: onRejectDialogClose } = useDisclosure();
-	const { isOpen: isApprovalDialogOpen, onOpen: onApprovalDialogOpen, onClose: onApprovalDialogClose } = useDisclosure();
 	const { isOpen: isMediaViewerOpen, onOpen: onMediaViewerOpen, onClose: onMediaViewerClose } = useDisclosure();
-	const cancelRef = React.useRef();
 	const toast = useToast();
 
-	const fetchPendingApartments = async () => {
+	const fetchApprovedApartments = async () => {
 		setLoading(true);
 		try {
 			const authToken = localStorage.getItem("authToken");
 			if (!authToken) throw new Error("No authentication token found");
 
-			const response = await axios.get(AdminGetPendingApartmentsAPI, {
+			const response = await axios.get(AdminGetApprovedApartmentsAPI, {
 				headers: {
 					"Content-Type": "application/json",
 					Authorization: `Bearer ${authToken}`,
@@ -90,7 +72,7 @@ const Index = () => {
 
 			if (response.data?.apartments) {
 				const mapped = response.data.apartments.map((apt, index) => ({
-					id: apt._id, // apartment ID
+					id: apt._id,
 					sn: index + 1,
 					apartmentName: apt.apartmentName,
 					apartmentAddress: `${apt.address}, ${apt.city}, ${apt.state}`,
@@ -98,13 +80,15 @@ const Index = () => {
 					agentEmail: apt.agentId?.email || "N/A",
 					agentPhone: apt.agentId?.phone ? `+${apt.agentId.phone}` : "N/A",
 					status: apt.status,
+					approvedAt: apt.statusHistory?.find(h => h.status === "approved")?.timestamp || apt.updatedAt,
+					approvedBy: apt.statusHistory?.find(h => h.status === "approved")?.updatedBy || "N/A",
 				}));
-				setApartments(mapped);
+				setApprovedApartments(mapped);
 			} else {
-				throw new Error("Failed to fetch apartments");
+				throw new Error("Failed to fetch approved apartments");
 			}
 		} catch (error) {
-			console.error("Error fetching apartments:", error);
+			console.error("Error fetching approved apartments:", error);
 			toast({
 				title: "Error",
 				description: error.response?.data?.message || error.message,
@@ -117,14 +101,13 @@ const Index = () => {
 		}
 	};
 
-
 	const fetchApartmentDetails = async (apartmentId) => {
 		setApartmentDetailsLoading(apartmentId);
 		try {
 			const authToken = localStorage.getItem("authToken");
 			if (!authToken) throw new Error("No authentication token found");
 
-			const response = await axios.get(AdminGetPendingApartmentByIdAPI(apartmentId), {
+			const response = await axios.get(AdminGetApprovedApartmentByIdAPI(apartmentId), {
 				headers: {
 					"Content-Type": "application/json",
 					Authorization: `Bearer ${authToken}`,
@@ -132,10 +115,28 @@ const Index = () => {
 			});
 
 			if (response.data?.apartment) {
-				setSelectedApartment(response.data.apartment);
+				const apartmentData = { ...response.data.apartment };
+				
+				// Parse amenities - it's an array with JSON string as first element
+				if (Array.isArray(apartmentData.amenities) && apartmentData.amenities.length > 0 && typeof apartmentData.amenities[0] === 'string') {
+					try {
+						apartmentData.amenities = JSON.parse(apartmentData.amenities[0]);
+					} catch (e) {
+						console.warn("Failed to parse amenities:", e);
+						apartmentData.amenities = [];
+					}
+				} else if (typeof apartmentData.amenities === 'string') {
+					try {
+						apartmentData.amenities = JSON.parse(apartmentData.amenities);
+					} catch (e) {
+						console.warn("Failed to parse amenities:", e);
+						apartmentData.amenities = [];
+					}
+				}
+				
+				setSelectedApartment(apartmentData);
 				onOpen();
-				console.log("Apartment details fetched successfully:", response.data.apartment);
-
+				console.log("Apartment details fetched successfully:", apartmentData);
 			} else {
 				throw new Error("Failed to fetch apartment details");
 			}
@@ -155,88 +156,6 @@ const Index = () => {
 
 	const handleViewDetails = (apartmentId) => {
 		fetchApartmentDetails(apartmentId);
-	};
-
-	const handleStatusChange = async (apartmentId, action, note = null) => {
-		setStatusLoadingId(apartmentId);
-		try {
-			const authToken = localStorage.getItem("authToken");
-			if (!authToken) throw new Error("No authentication token found");
-
-			const endpoint = AdminApprovedApartment(apartmentId); // Both approval and rejection use the same endpoint
-
-			const requestBody = {
-				status: action === "approve" ? "approved" : "rejected",
-				reason: note || ""
-			};
-
-			await axios.patch(endpoint, requestBody, {
-				headers: {
-					"Content-Type": "application/json",
-					Authorization: `Bearer ${authToken}`,
-				},
-			});
-
-			toast({
-				title: `Apartment ${action === "approve" ? "approved" : "rejected"}`,
-				status: "success",
-				duration: 4000,
-				isClosable: true,
-			});
-
-			// Refetch updated list
-			fetchPendingApartments();
-			
-			// Close modals and reset rejection reason
-			onClose();
-			if (action === "reject") {
-				onRejectDialogClose();
-				setRejectionReason("");
-			}
-		} catch (error) {
-			console.error(`Error trying to ${action} apartment:`, error);
-			toast({
-				title: "Error",
-				description: error.response?.data?.message || error.message,
-				status: "error",
-				duration: 5000,
-				isClosable: true,
-			});
-		} finally {
-			setStatusLoadingId(null);
-		}
-	};
-
-	const handleRejectApartment = () => {
-		if (!rejectionReason.trim()) {
-			toast({
-				title: "Error",
-				description: "Please provide a reason for rejection",
-				status: "error",
-				duration: 3000,
-				isClosable: true,
-			});
-			return;
-		}
-		handleStatusChange(selectedApartment._id, "reject", rejectionReason);
-		setRejectionReason("");
-		onRejectDialogClose();
-	};
-
-	const handleApproveApartment = () => {
-		if (!approvalNote.trim()) {
-			toast({
-				title: "Error",
-				description: "Please provide a reason/note for approval",
-				status: "error",
-				duration: 3000,
-				isClosable: true,
-			});
-			return;
-		}
-		handleStatusChange(selectedApartment._id, "approve", approvalNote);
-		setApprovalNote("");
-		onApprovalDialogClose();
 	};
 
 	const openMediaViewer = (mediaUrl, mediaType, index) => {
@@ -260,9 +179,8 @@ const Index = () => {
 		setSelectedMedia(allMedia[newIndex]);
 	};
 
-
 	useEffect(() => {
-		fetchPendingApartments();
+		fetchApprovedApartments();
 	}, []);
 
 	return (
@@ -277,16 +195,16 @@ const Index = () => {
 						<CardHeader>
 							<Flex justify="space-between" align="center" minHeight="60px" w="100%">
 								<Text fontSize="lg" color={"#de9301"} fontWeight="bold">
-									Incoming Apartments
+									Approved Apartments
 								</Text>
 							</Flex>
 						</CardHeader>
 
 						<Card display="block">
 							<DataTable
-								value={apartments}
+								value={approvedApartments}
 								paginator
-								rows={5}
+								rows={10}
 								rowsPerPageOptions={[5, 10, 25, 50]}
 							>
 								<Column field="sn" header="S/N" style={{ width: "5%" }} />
@@ -299,7 +217,27 @@ const Index = () => {
 									field="status"
 									header="Status"
 									body={(row) => (
-										<span style={{ textTransform: "capitalize" }}>{row.status}</span>
+										<Badge colorScheme="green" textTransform="capitalize">
+											{row.status}
+										</Badge>
+									)}
+								/>
+								<Column
+									field="approvedAt"
+									header="Approved Date"
+									body={(row) => (
+										<Text fontSize="sm">
+											{row.approvedAt ? new Date(row.approvedAt).toLocaleDateString() : "N/A"}
+										</Text>
+									)}
+								/>
+								<Column
+									field="approvedBy"
+									header="Approved By"
+									body={(row) => (
+										<Text fontSize="sm">
+											{row.approvedBy || "System"}
+										</Text>
 									)}
 								/>
 								<Column
@@ -334,8 +272,7 @@ const Index = () => {
 								</Text>
 								{selectedApartment && (
 									<Badge
-										colorScheme={selectedApartment.status === "approved" ? "green" : 
-													selectedApartment.status === "rejected" ? "red" : "yellow"}
+										colorScheme="green"
 										fontSize="sm"
 									>
 										{selectedApartment.status?.toUpperCase()}
@@ -580,13 +517,15 @@ const Index = () => {
 											<Text fontSize="lg" fontWeight="bold" mb={4} color="#de9301">
 												Available Amenities
 											</Text>
-											<SimpleGrid columns={{ base: 2, md: 3, lg: 4 }} spacing={3}>
+											<Wrap spacing={3}>
 												{selectedApartment.amenities?.map((amenity, index) => (
-													<Box key={index} p={3} bg="gray.50" borderRadius="md" textAlign="center">
-														<Text fontWeight="medium">{amenity}</Text>
-													</Box>
+													<WrapItem key={index}>
+														<Tag size="lg" colorScheme="blue" borderRadius="full" px={4} py={2}>
+															{amenity}
+														</Tag>
+													</WrapItem>
 												))}
-											</SimpleGrid>
+											</Wrap>
 										</Box>
 									</TabPanel>
 
@@ -689,7 +628,6 @@ const Index = () => {
 											</Grid>
 										</Box>
 									</TabPanel>
-
 								</TabPanels>
 							</ModalTabs>
 						) : (
@@ -698,30 +636,9 @@ const Index = () => {
 					</ModalBody>
 
 					<ModalFooter>
-						<HStack spacing={3}>
-							<Button colorScheme="gray" onClick={onClose}>
-								Close
-							</Button>
-							{selectedApartment && selectedApartment.status === "pending" && (
-								<>
-									<Button
-										colorScheme="green"
-										isLoading={statusLoadingId === selectedApartment._id}
-										onClick={onApprovalDialogOpen}
-									>
-										Approve Apartment
-									</Button>
-									<Button
-										colorScheme="red"
-										variant="outline"
-										isLoading={statusLoadingId === selectedApartment._id}
-										onClick={onRejectDialogOpen}
-									>
-										Reject Apartment
-									</Button>
-								</>
-							)}
-						</HStack>
+						<Button colorScheme="blue" onClick={onClose}>
+							Close
+						</Button>
 					</ModalFooter>
 				</ModalContent>
 			</Modal>
@@ -858,96 +775,8 @@ const Index = () => {
 					</ModalBody>
 				</ModalContent>
 			</Modal>
-
-			{/* Rejection Reason Dialog */}
-			<AlertDialog
-				isOpen={isRejectDialogOpen}
-				leastDestructiveRef={cancelRef}
-				onClose={onRejectDialogClose}
-			>
-				<AlertDialogOverlay>
-					<AlertDialogContent>
-						<AlertDialogHeader fontSize="lg" fontWeight="bold">
-							Reject Apartment: {selectedApartment?.apartmentName}
-						</AlertDialogHeader>
-
-						<AlertDialogBody>
-							<FormControl isRequired>
-								<FormLabel>Reason for rejection</FormLabel>
-								<Textarea
-									placeholder="Please provide a detailed reason for rejecting this apartment..."
-									value={rejectionReason}
-									onChange={(e) => setRejectionReason(e.target.value)}
-									resize="vertical"
-									minH="100px"
-								/>
-							</FormControl>
-						</AlertDialogBody>
-
-						<AlertDialogFooter>
-							<Button ref={cancelRef} onClick={() => {
-								setRejectionReason("");
-								onRejectDialogClose();
-							}}>
-								Cancel
-							</Button>
-							<Button
-								colorScheme="red"
-								ml={3}
-								isLoading={statusLoadingId === selectedApartment?._id}
-								onClick={handleRejectApartment}
-							>
-								Reject Apartment
-							</Button>
-						</AlertDialogFooter>
-					</AlertDialogContent>
-				</AlertDialogOverlay>
-			</AlertDialog>
-
-			{/* Approval Note Dialog */}
-			<AlertDialog
-				isOpen={isApprovalDialogOpen}
-				leastDestructiveRef={cancelRef}
-				onClose={onApprovalDialogClose}
-			>
-				<AlertDialogOverlay>
-					<AlertDialogContent>
-						<AlertDialogHeader fontSize="lg" fontWeight="bold">
-							Approve Apartment: {selectedApartment?.apartmentName}
-						</AlertDialogHeader>
-						<AlertDialogBody>
-							<FormControl isRequired>
-								<FormLabel>Reason for Approval</FormLabel>
-								<Textarea
-									placeholder="Please provide a reason/note for approving this apartment..."
-									value={approvalNote}
-									onChange={(e) => setApprovalNote(e.target.value)}
-									resize="vertical"
-									minH="100px"
-								/>
-							</FormControl>
-						</AlertDialogBody>
-						<AlertDialogFooter>
-							<Button ref={cancelRef} onClick={() => {
-								setApprovalNote("");
-								onApprovalDialogClose();
-							}}>
-								Cancel
-							</Button>
-							<Button
-								colorScheme="green"
-								ml={3}
-								isLoading={statusLoadingId === selectedApartment?._id}
-								onClick={handleApproveApartment}
-							>
-								Approve Apartment
-							</Button>
-						</AlertDialogFooter>
-					</AlertDialogContent>
-				</AlertDialogOverlay>
-			</AlertDialog>
 		</Flex>
 	);
 };
 
-export default Index;
+export default ApprovedApartments;

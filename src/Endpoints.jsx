@@ -1,5 +1,5 @@
-// Base API URL (live only)
-export const baseUrl = "https://api.africartz.com/api";
+// Base API URL (environment configurable)
+export const baseUrl = process.env.REACT_APP_API_BASE_URL || "https://api.africartz.com/api";
 
 // Helper to generate full endpoint paths
 const endpoint = (path) => `${baseUrl}${path}`;
@@ -14,23 +14,20 @@ export const AdminGetStatsAPI = endpoint("/admin/stats");
 
 
 export const AdminGetPendingApartmentsAPI = endpoint("/apartment/pending-apartments");
-export const AdminApprovedApartment = (APARTMENT_ID) => endpoint(`/admin/${APARTMENT_ID}/approve`);
-export const AdminRejectApartment = (APARTMENT_ID) => endpoint(`/admin/${APARTMENT_ID}//reject`);
+export const AdminGetPendingApartmentByIdAPI = (APARTMENT_ID) => endpoint(`/apartment/pending-apartments/${APARTMENT_ID}`);
+export const AdminGetApprovedApartmentsAPI = endpoint("/admin/apartments/approved");
+export const AdminGetApprovedApartmentByIdAPI = (APARTMENT_ID) => endpoint(`/admin/apartments/approved/${APARTMENT_ID}`);
+export const AdminApprovedApartment = (APARTMENT_ID) => endpoint(`/admin/apartments/${APARTMENT_ID}/status`);
+export const AdminRejectApartment = (APARTMENT_ID) => endpoint(`/admin/${APARTMENT_ID}/reject`);
 
-
-
-
-
-
-
-
-
+export const AdminGetBookingsSummaryAPI = endpoint("/admin/bookings");
+export const AdminGetAllBookingsAPI = endpoint("/admin/bookings/all");
 
 
 // ≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠OLD≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠
 // Dashboard Endpoints
 export const DashboardAPI = endpoint("/admin/dashboard");
-export const GetAdminProfile = endpoint("/user");
+export const GetAdminProfile = endpoint("/admin/profile");
 
 // Bookings Endpoints
 export const BookingsAPI = endpoint("/admin/bookings");

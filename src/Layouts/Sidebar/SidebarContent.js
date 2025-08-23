@@ -57,7 +57,17 @@ const SidebarContent = ({ logoText }) => {
               route="/admin/apartments"
             />
             <SideBarLink
-              text="Agents"
+              text="Approved Apartments"
+              icon={<Icon as={MdApartment} w={5} h={5} />}
+              route="/admin/approved-apartments"
+            />
+            <SideBarLink
+              text="Bookings"
+              icon={<Icon as={FaBookOpen} w={5} h={5} />}
+              route="/admin/bookings"
+            />
+            <SideBarLink
+              text="Owner/Agents"
               icon={<Icon as={FaUserTag} w={5} h={5} />}
               route="admin/agents"
             />

@@ -103,8 +103,9 @@ export function GlobalProvider({ children }) {
 		.then((data) => {
 			if(data?.status === 'success'){
 				// Only log user in if the API call was successful
-				logUserIn("admin", false);
 				setToken(tok);
+				setLoggedIn(true);
+				setAdmin(true);
 				setUserId(data?.profile?.id);
 				setUsername(data?.profile?.name);
 				setEmail(data?.profile?.email);
@@ -124,17 +125,28 @@ export function GlobalProvider({ children }) {
 		// eslint-disable-next-line
 	}, []);
 
-	const logUserIn = (as = "student", fetchProfile = true) => {
+	const logUserIn = (as = "student", profileData = null) => {
 		setLoggedIn(true);
 		if (as === "admin") {
 			navigate("/admin/dashboard");
 			setAdmin(true);
+			
+			// If profile data is provided (from login response), use it directly
+			if (profileData) {
+				setUserId(profileData.id);
+				setUsername(profileData.name);
+				setEmail(profileData.email);
+				setProfile(profileData);
+				setLoading(false);
+			} else {
+				// Otherwise fetch profile from API
+				fetchUserProfile();
+			}
 		} else {
 			navigate("/user/dashboard");
-		}
-
-		if (fetchProfile) {
-			fetchUserProfile();
+			if (!profileData) {
+				fetchUserProfile();
+			}
 		}
 	};
 

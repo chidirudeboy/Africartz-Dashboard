@@ -12,6 +12,7 @@ import Users from "./Pages/Admin/Users/Index";
 import Apartments from "./Pages/Admin/Apartments/Index";
 import ApprovedApartments from "./Pages/Admin/ApprovedApartments/Index";
 import Bookings from "./Pages/Admin/Bookings/Index";
+import Reservations from "./Pages/Admin/Reservations/Index";
 import Agent from "./Pages/Admin/Agents/Index";
 
 const Authorize = () => {
@@ -34,6 +35,7 @@ const Authorize = () => {
 						<Route path="/admin/apartments" element={<Apartments />} />
 						<Route path="/admin/approved-apartments" element={<ApprovedApartments />} />
 						<Route path="/admin/bookings" element={<Bookings />} />
+						<Route path="/admin/reservations" element={<Reservations />} />
 						<Route path="/admin/agents" element={<Agent />} />
 						{/* Add more protected routes here */}
 					</Route>

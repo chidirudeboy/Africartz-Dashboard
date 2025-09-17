@@ -32,9 +32,11 @@ jobs:
       
     - name: Run build
       run: npm run build:prod
+      env:
+        CI: false
       
     - name: Upload coverage reports
-      uses: codecov/codecov-action@v3
+      uses: codecov/codecov-action@v4
       if: success()
 
   security-scan:
@@ -104,6 +106,8 @@ jobs:
       
     - name: Build app
       run: npm run build:prod
+      env:
+        CI: false
       
     - name: Serve app and run Lighthouse
       run: |
@@ -112,7 +116,7 @@ jobs:
         npx lighthouse http://localhost:3000 --output=json --output-path=./lighthouse-results.json --chrome-flags="--headless --no-sandbox"
         
     - name: Upload Lighthouse results
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: lighthouse-results
         path: lighthouse-results.json

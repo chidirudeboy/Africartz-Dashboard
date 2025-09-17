@@ -83,13 +83,12 @@ export function GlobalProvider({ children }) {
 	const fetchUserProfile = useCallback(() => {
 		// Try to get token from localStorage first, then fall back to cookies
 		let tok = localStorage.getItem("authToken");
-		let role = "admin";
 
 		if (!tok) {
 			// Fallback to cookies if localStorage is empty
 			const cookieData = getToken();
 			tok = cookieData.token;
-			role = cookieData.role;
+			// role = cookieData.role; // Currently not used
 		}
 
 		// If no token exists or token is empty/invalid, don't make the API call

@@ -33,13 +33,14 @@ jobs:
     - name: Build production app
       run: npm run build:prod
       env:
+        CI: false
         REACT_APP_API_BASE_URL: https://api.africartz.com/api
         REACT_APP_ENVIRONMENT: production
         REACT_APP_ENABLE_NOTIFICATIONS: true
         REACT_APP_DEBUG_MODE: false
       
     - name: Upload build artifacts
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: build-files
         path: build/
@@ -69,7 +70,7 @@ jobs:
         echo "preview-url=$url" >> $GITHUB_OUTPUT
         
     - name: Comment Preview URL on PR
-      uses: actions/github-script@v6
+      uses: actions/github-script@v7
       if: github.event_name == 'pull_request'
       with:
         script: |
@@ -105,7 +106,7 @@ jobs:
         echo "production-url=$url" >> $GITHUB_OUTPUT
         
     - name: Create deployment status
-      uses: actions/github-script@v6
+      uses: actions/github-script@v7
       with:
         script: |
           github.rest.repos.createCommitStatus({

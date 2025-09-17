@@ -1,5 +1,6 @@
 // Base API URL (environment configurable)
-export const baseUrl = process.env.REACT_APP_API_BASE_URL || "https://api.africartz.com/api";
+import { ENV_CONFIG } from './config/env';
+export const baseUrl = ENV_CONFIG.API_BASE_URL;
 
 // Helper to generate full endpoint paths
 const endpoint = (path) => `${baseUrl}${path}`;

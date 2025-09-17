@@ -17,10 +17,12 @@
 # Environment files (keep .env.example for documentation)
 .env
 .env.local
+.env.development
 .env.development.local
 .env.test.local
 .env.production.local
 .env.staging
+.env.production
 
 # Private documentation (contains sensitive information)
 README.private.md

@@ -45,6 +45,7 @@
 		"start:prod-api": "cp .env .env.development.local && react-scripts start",
 		"start:staging": "REACT_APP_ENVIRONMENT=staging react-scripts start",
 		"build": "react-scripts build",
+		"vercel-build": "CI=false npm run build:prod",
 		"build:dev": "REACT_APP_ENVIRONMENT=development react-scripts build",
 		"build:staging": "REACT_APP_ENVIRONMENT=staging react-scripts build",
 		"build:prod": "REACT_APP_ENVIRONMENT=production react-scripts build",

@@ -10,7 +10,6 @@ node_modules/
 .env.production
 
 # Development files
-src/
 .github/
 coverage/
 

@@ -44,64 +44,21 @@ function AdminLogin() {
 			AdminLoginAPI,
 			reqBody,
 			(result) => {
-
 				setLoading(false);
-				if (result?.refreshToken) {
+				
+				if (result?.refreshToken && result?.accessToken) {
 					notify("Success", "Redirecting to your dashboard...");
 
-					// Save the token to localStorage or context
-					storeToken(result.refreshToken, "admin");
-					postAuth(
-						AdminLoginAPI,
-						reqBody,
-						(result) => {
+					// Store tokens consistently - use accessToken for API calls
+					localStorage.setItem("authToken", result.accessToken);
+					localStorage.setItem("refreshToken", result.refreshToken);
+					
+					// Store in cookies using the accessToken for consistency
+					storeToken(result.accessToken, "admin");
 
-							setLoading(false);
-
-							if (result?.refreshToken) {
-								notify("Success", "Redirecting to your dashboard...");
-
-								// Store tokens consistently
-								localStorage.setItem("authToken", result.accessToken);  // Primary storage
-								localStorage.setItem("refreshToken", result.refreshToken); // If needed for refresh
-
-								// Also store in your custom store if needed
-								storeToken(result.refreshToken, "admin");
-
-								logUserIn("admin", result.admin);
-								navigate("/admin/dashboard");
-							}
-							else {
-								const errors = result?.errors;
-								if (errors && Object.keys(errors).length > 0) {
-									for (let err in errors) {
-										notify(errors[err][0], "", "error");
-									}
-								} else {
-									notify("Failed", result?.message, "error");
-								}
-							}
-						},
-						(error) => {
-							setLoading(false);
-							const errors = error?.errors;
-							if (errors && Object.keys(errors).length > 0) {
-								for (let err in errors) {
-									notify(errors[err][0], "", "error");
-								}
-							} else {
-								notify("Failed", error?.message, "error");
-							}
-						}
-					);
-
-					// Save admin user info if needed
+					// Log user in with profile data
 					logUserIn("admin", result.admin);
-
-					// Optionally redirect to dashboard
-					// window.location.href = "/admin/dashboard";
 					navigate("/admin/dashboard");
-
 				}
 				else {
 					const errors = result?.errors;

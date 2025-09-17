@@ -1,11 +1,8 @@
 import { createContext, useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
-	AdminGetProfileAPI,
 	GetAdminProfile,
-	StudentProfileAPI,
 } from "./Endpoints";
-import { fetchAPI } from "./utils/fetchAPI";
 
 const GlobalContext = createContext();
 
@@ -84,14 +81,24 @@ export function GlobalProvider({ children }) {
 	};
 
 	const fetchUserProfile = useCallback(() => {
-		// Pick token from browser cookies
-		let { token: tok, role } = getToken();
+		// Try to get token from localStorage first, then fall back to cookies
+		let tok = localStorage.getItem("authToken");
 
-		// If no token exists, don't make the API call
 		if (!tok) {
+			// Fallback to cookies if localStorage is empty
+			const cookieData = getToken();
+			tok = cookieData.token;
+			// role = cookieData.role; // Currently not used
+		}
+
+		// If no token exists or token is empty/invalid, don't make the API call
+		if (!tok || tok.trim() === '' || tok === 'undefined' || tok === 'null') {
+			console.log('No valid token found, skipping profile fetch');
 			setLoading(false);
 			return;
 		}
+
+		console.log('Fetching admin profile with token:', tok ? 'Token present' : 'No token');
 
 		fetch(GetAdminProfile, {
 			headers: new Headers({
@@ -113,12 +120,16 @@ export function GlobalProvider({ children }) {
 			} else {
 				// API returned error, remove invalid token
 				removeToken();
+				localStorage.removeItem("authToken");
+				localStorage.removeItem("refreshToken");
 			}
 			setLoading(false);
 		})
 		.catch((err) => {
-			console.error(err);
+			console.log('Profile fetch failed (user likely not logged in):', err.message || err);
 			removeToken();
+			localStorage.removeItem("authToken");
+			localStorage.removeItem("refreshToken");
 			setLoading(false);
 		});
 
@@ -155,6 +166,8 @@ export function GlobalProvider({ children }) {
 		setAdmin(false);
 		navigate("/login");
 		removeToken();
+		localStorage.removeItem("authToken");
+		localStorage.removeItem("refreshToken");
 	};
 
 	useEffect(() => {

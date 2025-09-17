@@ -96,9 +96,11 @@ export const fetchProtectedResource = async ({
 		handleSuccess(result);
 	} catch (error) {
 		if (!(error instanceof Error)) {
-			error = new Error("An unknown error occurred");
+			const newError = new Error("An unknown error occurred");
+			handleError(newError);
+		} else {
+			handleError(error);
 		}
-		handleError(error);
 	}
 };
 

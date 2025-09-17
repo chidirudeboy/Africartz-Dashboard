@@ -105,7 +105,7 @@ const AgentsTable = () => {
 								paginator
 								rows={5}
 								rowsPerPageOptions={[5, 10, 25, 50]}
-								emptyMessage="No agents found"
+								emptyMessage="No agents found, Try again later."
 								loading={loading}
 							>
 								<Column

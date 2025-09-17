@@ -1,0 +1,11 @@
+{
+  "version": 2,
+  "framework": "create-react-app",
+  "buildCommand": "npm run build:prod",
+  "outputDirectory": "build",
+  "rewrites": [
+    { "source": "/(.*)", "destination": "/index.html" }
+  ],
+  "trailingSlash": false
+}
+

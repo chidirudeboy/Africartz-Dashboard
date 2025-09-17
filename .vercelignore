@@ -1,0 +1,23 @@
+# Dependencies
+node_modules/
+
+# Environment files (managed in Vercel dashboard)
+.env
+.env.local
+.env.development
+.env.development.local
+.env.staging
+.env.production
+
+# Development files
+src/
+public/
+.github/
+coverage/
+
+# Documentation
+*.md
+!README.md
+
+# Build cache
+.eslintcache

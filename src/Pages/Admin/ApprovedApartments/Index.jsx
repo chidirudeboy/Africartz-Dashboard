@@ -1,10 +1,7 @@
 import {
-	Card,
-	CardHeader,
 	Flex,
 	Spinner,
 	Button,
-	Tabs,
 	Text,
 	useToast,
 	Modal,
@@ -34,11 +31,20 @@ import {
 	TabPanels,
 	Tab,
 	TabPanel,
+	HStack,
+	Avatar,
+	Stat,
+	StatLabel,
+	StatNumber,
+	StatHelpText
 } from "@chakra-ui/react";
 import { FaWifi, FaPhoneAlt, FaWhatsapp, FaMapMarkerAlt, FaBed, FaBath, FaUsers, FaChevronLeft, FaChevronRight, FaTimes } from "react-icons/fa";
-import React, { useState, useEffect } from "react";
+import { useState, useEffect, Fragment } from "react";
 import { Column } from "primereact/column";
 import { DataTable } from "primereact/datatable";
+import Card from "../../../components/Card/Card.js";
+import CardBody from "../../../components/Card/CardBody.js";
+import CardHeader from "../../../components/Card/CardHeader.js";
 import axios from "axios";
 import {
 	AdminGetApprovedApartmentsAPI,
@@ -82,6 +88,12 @@ const ApprovedApartments = () => {
 					status: apt.status,
 					approvedAt: apt.statusHistory?.find(h => h.status === "approved")?.timestamp || apt.updatedAt,
 					approvedBy: apt.statusHistory?.find(h => h.status === "approved")?.updatedBy || "N/A",
+					bedrooms: apt.bedrooms,
+					bathrooms: apt.bathrooms,
+					guests: apt.guests,
+					defaultStayFee: apt.defaultStayFee,
+					city: apt.city,
+					state: apt.state
 				}));
 				setApprovedApartments(mapped);
 			} else {
@@ -116,7 +128,7 @@ const ApprovedApartments = () => {
 
 			if (response.data?.apartment) {
 				const apartmentData = { ...response.data.apartment };
-				
+
 				// Parse amenities - it's an array with JSON string as first element
 				if (Array.isArray(apartmentData.amenities) && apartmentData.amenities.length > 0 && typeof apartmentData.amenities[0] === 'string') {
 					try {
@@ -133,10 +145,9 @@ const ApprovedApartments = () => {
 						apartmentData.amenities = [];
 					}
 				}
-				
+
 				setSelectedApartment(apartmentData);
 				onOpen();
-				console.log("Apartment details fetched successfully:", apartmentData);
 			} else {
 				throw new Error("Failed to fetch apartment details");
 			}
@@ -163,7 +174,7 @@ const ApprovedApartments = () => {
 		const images = selectedApartment.media?.images?.map(img => ({ url: img, type: 'image' })) || [];
 		const videos = selectedApartment.media?.videos?.map(vid => ({ url: vid, type: 'video' })) || [];
 		const combinedMedia = [...images, ...videos];
-		
+
 		setAllMedia(combinedMedia);
 		setCurrentMediaIndex(index);
 		setSelectedMedia({ url: mediaUrl, type: mediaType });
@@ -171,13 +182,102 @@ const ApprovedApartments = () => {
 	};
 
 	const navigateMedia = (direction) => {
-		const newIndex = direction === 'next' 
+		const newIndex = direction === 'next'
 			? (currentMediaIndex + 1) % allMedia.length
 			: (currentMediaIndex - 1 + allMedia.length) % allMedia.length;
-		
+
 		setCurrentMediaIndex(newIndex);
 		setSelectedMedia(allMedia[newIndex]);
 	};
+
+	// Template functions for DataTable
+	const apartmentNameTemplate = (rowData) => {
+		return (
+			<HStack spacing={3}>
+				<Avatar size="sm" name={rowData.apartmentName} bg="blue.500" />
+				<VStack align="start" spacing={0}>
+					<Text fontWeight="medium" fontSize="sm">
+						{rowData.apartmentName}
+					</Text>
+					<Text fontSize="xs" color="gray.500">
+						{rowData.city}, {rowData.state}
+					</Text>
+				</VStack>
+			</HStack>
+		);
+	};
+
+	const agentTemplate = (rowData) => {
+		return (
+			<HStack spacing={2}>
+				<Avatar size="xs" name={rowData.agentName} />
+				<VStack align="start" spacing={0}>
+					<Text fontSize="sm" fontWeight="medium">
+						{rowData.agentName}
+					</Text>
+					<Text fontSize="xs" color="gray.500">
+						{rowData.agentEmail}
+					</Text>
+				</VStack>
+			</HStack>
+		);
+	};
+
+	const propertyInfoTemplate = (rowData) => {
+		return (
+			<HStack spacing={4}>
+				<HStack spacing={1}>
+					<Icon as={FaBed} color="blue.500" boxSize={3} />
+					<Text fontSize="xs">{rowData.bedrooms}</Text>
+				</HStack>
+				<HStack spacing={1}>
+					<Icon as={FaBath} color="teal.500" boxSize={3} />
+					<Text fontSize="xs">{rowData.bathrooms}</Text>
+				</HStack>
+				<HStack spacing={1}>
+					<Icon as={FaUsers} color="purple.500" boxSize={3} />
+					<Text fontSize="xs">{rowData.guests}</Text>
+				</HStack>
+			</HStack>
+		);
+	};
+
+	const statusTemplate = (rowData) => {
+		return (
+			<Badge colorScheme="green" variant="subtle" borderRadius="full" px={3} py={1}>
+				{rowData.status}
+			</Badge>
+		);
+	};
+
+	const priceTemplate = (rowData) => {
+		return (
+			<Text fontSize="sm" fontWeight="bold" color="green.600">
+				₦{rowData.defaultStayFee?.toLocaleString() || 'N/A'}
+			</Text>
+		);
+	};
+
+	const actionTemplate = (rowData) => {
+		return (
+			<Button
+				colorScheme="blue"
+				size="sm"
+				variant="outline"
+				isLoading={apartmentDetailsLoading === rowData.id}
+				onClick={() => handleViewDetails(rowData.id)}
+				borderRadius="full"
+			>
+				View Details
+			</Button>
+		);
+	};
+
+	// Calculate statistics
+	const totalApartments = approvedApartments.length;
+	const totalRevenue = approvedApartments.reduce((sum, apt) => sum + (apt.defaultStayFee || 0), 0);
+	const averagePrice = totalApartments > 0 ? totalRevenue / totalApartments : 0;
+	const uniqueAgents = new Set(approvedApartments.map(apt => apt.agentEmail)).size;
 
 	useEffect(() => {
 		fetchApprovedApartments();
@@ -190,74 +290,150 @@ const ApprovedApartments = () => {
 					<Spinner size="xl" />
 				</Flex>
 			) : (
-				<Tabs isFitted variant="enclosed">
-					<Card p="16px" mt="20px" w="100%">
-						<CardHeader>
-							<Flex justify="space-between" align="center" minHeight="60px" w="100%">
-								<Text fontSize="lg" color={"#de9301"} fontWeight="bold">
-									Approved Apartments
-								</Text>
+				<Fragment>
+					{/* Statistics Cards */}
+					<SimpleGrid columns={{ sm: 1, md: 2, xl: 4 }} spacing="24px" mb="30px">
+						<Card p="20px" bg="linear-gradient(135deg, #667eea 0%, #764ba2 100%)" color="white">
+							<Stat>
+								<StatLabel fontSize="md" opacity={0.8}>Total Approved</StatLabel>
+								<StatNumber fontSize="2xl" fontWeight="bold">{totalApartments}</StatNumber>
+								<StatHelpText fontSize="sm" opacity={0.7}>Apartments</StatHelpText>
+							</Stat>
+						</Card>
+
+						<Card p="20px" bg="linear-gradient(135deg, #f093fb 0%, #f5576c 100%)" color="white">
+							<Stat>
+								<StatLabel fontSize="md" opacity={0.8}>Active Agents</StatLabel>
+								<StatNumber fontSize="2xl" fontWeight="bold">{uniqueAgents}</StatNumber>
+								<StatHelpText fontSize="sm" opacity={0.7}>Unique agents</StatHelpText>
+							</Stat>
+						</Card>
+
+						<Card p="20px" bg="linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)" color="white">
+							<Stat>
+								<StatLabel fontSize="md" opacity={0.8}>Total Revenue</StatLabel>
+								<StatNumber fontSize="2xl" fontWeight="bold">₦{totalRevenue.toLocaleString()}</StatNumber>
+								<StatHelpText fontSize="sm" opacity={0.7}>Potential revenue</StatHelpText>
+							</Stat>
+						</Card>
+
+						<Card p="20px" bg="linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)" color="white">
+							<Stat>
+								<StatLabel fontSize="md" opacity={0.8}>Average Price</StatLabel>
+								<StatNumber fontSize="2xl" fontWeight="bold">₦{averagePrice.toLocaleString()}</StatNumber>
+								<StatHelpText fontSize="sm" opacity={0.7}>Per apartment</StatHelpText>
+							</Stat>
+						</Card>
+					</SimpleGrid>
+
+					{/* Main Table Card */}
+					<Card p="24px" w="100%" boxShadow="xl" borderRadius="2xl" bg="white" border="1px solid" borderColor="gray.100">
+						<CardHeader pb="20px">
+							<Flex justify="space-between" align="center" w="100%">
+								<VStack align="start" spacing={1}>
+									<Text fontSize="2xl" fontWeight="bold" color="gray.800">
+										Approved Apartments
+									</Text>
+									<Text fontSize="md" color="gray.500">
+										Manage and view all approved apartment listings
+									</Text>
+								</VStack>
 							</Flex>
 						</CardHeader>
 
-						<Card display="block">
-							<DataTable
-								value={approvedApartments}
-								paginator
-								rows={10}
-								rowsPerPageOptions={[5, 10, 25, 50]}
-							>
-								<Column field="sn" header="S/N" style={{ width: "5%" }} />
-								<Column field="apartmentName" header="Apartment Name" sortable filter />
-								<Column field="apartmentAddress" header="Address" sortable filter />
-								<Column field="agentName" header="Agent Name" sortable filter />
-								<Column field="agentEmail" header="Agent Email" sortable filter />
-								<Column field="agentPhone" header="Phone No." sortable filter />
-								<Column
-									field="status"
-									header="Status"
-									body={(row) => (
-										<Badge colorScheme="green" textTransform="capitalize">
-											{row.status}
-										</Badge>
-									)}
-								/>
-								<Column
-									field="approvedAt"
-									header="Approved Date"
-									body={(row) => (
-										<Text fontSize="sm">
-											{row.approvedAt ? new Date(row.approvedAt).toLocaleDateString() : "N/A"}
-										</Text>
-									)}
-								/>
-								<Column
-									field="approvedBy"
-									header="Approved By"
-									body={(row) => (
-										<Text fontSize="sm">
-											{row.approvedBy || "System"}
-										</Text>
-									)}
-								/>
-								<Column
-									header="Actions"
-									body={(row) => (
-										<Button
-											colorScheme="blue"
-											size="sm"
-											variant="outline"
-											isLoading={apartmentDetailsLoading === row.id}
-											onClick={() => handleViewDetails(row.id)}
-										>
-											View Details
-										</Button>
-									)}
-								/>
-							</DataTable>
-						</Card>
+						<CardBody display={"block"}>
+							<Box borderRadius="xl" overflow="hidden" border="1px solid" borderColor="gray.200">
+								<DataTable
+									value={approvedApartments}
+									paginator
+									rows={10}
+									rowsPerPageOptions={[5, 10, 25, 50]}
+									emptyMessage="No approved apartments found."
+									loading={loading}
+									stripedRows
+									rowHover
+									scrollable
+									scrollHeight="600px"
+									globalFilterFields={['apartmentName', 'agentName', 'agentEmail', 'city', 'state']}
+								>
+									<Column
+										field="sn"
+										header="S/N"
+										style={{ width: "5%", padding: "16px" }}
+										headerStyle={{ backgroundColor: "#f8f9fa", fontWeight: "600", padding: "16px" }}
+									/>
+
+									<Column
+										field="apartmentName"
+										header="Apartment"
+										body={apartmentNameTemplate}
+										sortable
+										filter
+										filterPlaceholder="Search by name"
+										style={{ width: "25%", padding: "16px" }}
+										headerStyle={{ backgroundColor: "#f8f9fa", fontWeight: "600", padding: "16px" }}
+									/>
+
+									<Column
+										field="agentName"
+										header="Agent"
+										body={agentTemplate}
+										sortable
+										filter
+										filterPlaceholder="Search by agent"
+										style={{ width: "20%", padding: "16px" }}
+										headerStyle={{ backgroundColor: "#f8f9fa", fontWeight: "600", padding: "16px" }}
+									/>
+
+									<Column
+										field="propertyInfo"
+										header="Property Info"
+										body={propertyInfoTemplate}
+										style={{ width: "15%", padding: "16px" }}
+										headerStyle={{ backgroundColor: "#f8f9fa", fontWeight: "600", padding: "16px" }}
+									/>
+
+									<Column
+										field="defaultStayFee"
+										header="Price"
+										body={priceTemplate}
+										sortable
+										style={{ width: "10%", padding: "16px" }}
+										headerStyle={{ backgroundColor: "#f8f9fa", fontWeight: "600", padding: "16px" }}
+									/>
+
+									<Column
+										field="status"
+										header="Status"
+										body={statusTemplate}
+										style={{ width: "10%", padding: "16px" }}
+										headerStyle={{ backgroundColor: "#f8f9fa", fontWeight: "600", padding: "16px" }}
+									/>
+
+									<Column
+										field="approvedAt"
+										header="Approved"
+										body={(row) => (
+											<Text fontSize="sm" color="gray.600">
+												{row.approvedAt ? new Date(row.approvedAt).toLocaleDateString() : "N/A"}
+											</Text>
+										)}
+										sortable
+										style={{ width: "10%", padding: "16px" }}
+										headerStyle={{ backgroundColor: "#f8f9fa", fontWeight: "600", padding: "16px" }}
+									/>
+
+									<Column
+										header="Actions"
+										body={actionTemplate}
+										style={{ width: "10%", padding: "16px" }}
+										headerStyle={{ backgroundColor: "#f8f9fa", fontWeight: "600", padding: "16px" }}
+									/>
+								</DataTable>
+							</Box>
+						</CardBody>
 					</Card>
-				</Tabs>
+				</Fragment>
 			)}
 
 			{/* Apartment Details Modal */}
@@ -318,7 +494,7 @@ const ApprovedApartments = () => {
 																	objectFit="cover"
 																	cursor="pointer"
 																	transition="all 0.2s"
-																	_hover={{ 
+																	_hover={{
 																		transform: "scale(1.05)",
 																		boxShadow: "lg"
 																	}}
@@ -354,7 +530,7 @@ const ApprovedApartments = () => {
 																	>
 																		<video
 																			src={video}
-																			style={{ 
+																			style={{
 																				width: "100%",
 																				height: "100%",
 																				objectFit: "cover",
@@ -495,11 +671,11 @@ const ApprovedApartments = () => {
 															<Text fontSize="lg" fontWeight="bold" mb={3} color="#de9301">
 																Web Link
 															</Text>
-															<Text 
-																as="a" 
-																href={selectedApartment.webLink} 
-																target="_blank" 
-																color="blue.500" 
+															<Text
+																as="a"
+																href={selectedApartment.webLink}
+																target="_blank"
+																color="blue.500"
 																textDecoration="underline"
 															>
 																View Property Online
@@ -550,7 +726,7 @@ const ApprovedApartments = () => {
 													</Stack>
 												</Box>
 											</GridItem>
-											
+
 											<GridItem>
 												<Box p={4} bg="blue.50" borderRadius="md">
 													<Text fontSize="lg" fontWeight="bold" mb={3} color="#de9301">
@@ -644,9 +820,9 @@ const ApprovedApartments = () => {
 			</Modal>
 
 			{/* Media Viewer Modal */}
-			<Modal 
-				isOpen={isMediaViewerOpen} 
-				onClose={onMediaViewerClose} 
+			<Modal
+				isOpen={isMediaViewerOpen}
+				onClose={onMediaViewerClose}
 				size="full"
 				isCentered
 			>

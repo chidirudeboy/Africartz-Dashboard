@@ -18,6 +18,11 @@ export const AdminGetPendingApartmentsAPI = endpoint("/apartment/pending-apartme
 export const AdminGetPendingApartmentByIdAPI = (APARTMENT_ID) => endpoint(`/apartment/pending-apartments/${APARTMENT_ID}`);
 export const AdminGetApprovedApartmentsAPI = endpoint("/admin/apartments/approved");
 export const AdminGetApprovedApartmentByIdAPI = (APARTMENT_ID) => endpoint(`/admin/apartments/approved/${APARTMENT_ID}`);
+export const AdminGetResubmittedApartmentsAPI = endpoint("/admin/apartments/review?filter=newly_pushed");
+export const AdminGetResubmittedApartmentDetailsAPI = (APARTMENT_ID) => endpoint(`/admin/apartments/review/${APARTMENT_ID}`);
+export const AdminApproveResubmittedApartmentAPI = (APARTMENT_ID) => endpoint(`/admin/${APARTMENT_ID}/approve`);
+export const AdminRejectResubmittedApartmentAPI = (APARTMENT_ID) => endpoint(`/admin/${APARTMENT_ID}/reject`);
+export const AdminUpdateApartmentAPI = (APARTMENT_ID) => endpoint(`/apartment/admin/updateApartment/${APARTMENT_ID}`);
 export const AdminApprovedApartment = (APARTMENT_ID) => endpoint(`/admin/apartments/${APARTMENT_ID}/status`);
 export const AdminRejectApartment = (APARTMENT_ID) => endpoint(`/admin/${APARTMENT_ID}/reject`);
 

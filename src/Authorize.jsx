@@ -11,9 +11,11 @@ import Dashboard from "./Pages/Admin/Dashboard/Index";
 import Users from "./Pages/Admin/Users/Index";
 import Apartments from "./Pages/Admin/Apartments/Index";
 import ApprovedApartments from "./Pages/Admin/ApprovedApartments/Index";
+import ResubmittedApartments from "./Pages/Admin/ResubmittedApartments/Index";
 import Bookings from "./Pages/Admin/Bookings/Index";
 import Reservations from "./Pages/Admin/Reservations/Index";
 import Agent from "./Pages/Admin/Agents/Index";
+import Statistics from "./Pages/Admin/Statistics/Index";
 
 const Authorize = () => {
 	const { isLoggedIn, isLoading } = useContext(GlobalContext);
@@ -34,9 +36,11 @@ const Authorize = () => {
 						<Route path="/admin/users" element={<Users />} />
 						<Route path="/admin/apartments" element={<Apartments />} />
 						<Route path="/admin/approved-apartments" element={<ApprovedApartments />} />
+						<Route path="/admin/review-resubmitted" element={<ResubmittedApartments />} />
 						<Route path="/admin/bookings" element={<Bookings />} />
 						<Route path="/admin/reservations" element={<Reservations />} />
 						<Route path="/admin/agents" element={<Agent />} />
+						<Route path="/admin/statistics" element={<Statistics />} />
 						{/* Add more protected routes here */}
 					</Route>
 					{/* Redirect any login attempts to dashboard when already logged in */}

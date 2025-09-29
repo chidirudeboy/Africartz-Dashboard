@@ -1,5 +1,5 @@
-import React, { Fragment, useState, useEffect } from "react";
-import { Flex, SimpleGrid, Spinner, Text, useToast } from "@chakra-ui/react";
+import { Fragment, useState, useEffect, useContext, useCallback } from "react";
+import { Flex, SimpleGrid, Spinner, Text, useToast, Box, Stat, StatLabel, StatNumber, StatHelpText, Badge, Avatar, HStack, VStack } from "@chakra-ui/react";
 import { Column } from "primereact/column";
 import { DataTable } from "primereact/datatable";
 import axios from "axios";
@@ -7,14 +7,16 @@ import Card from "../../../components/Card/Card.js";
 import CardBody from "../../../components/Card/CardBody.js";
 import CardHeader from "../../../components/Card/CardHeader.js";
 import { AdminGetAgentAPI } from "../../../Endpoints";
+import GlobalContext from "../../../Context";
 
 const AgentsTable = () => {
 	const [loading, setLoading] = useState(false);
 	const [totalAgents, setTotalAgents] = useState(0);
 	const [agents, setAgents] = useState([]);
 	const toast = useToast();
+	const { handleTokenExpired } = useContext(GlobalContext);
 
-	const fetchAgents = async () => {
+	const fetchAgents = useCallback(async () => {
 		setLoading(true);
 		try {
 			const authToken = localStorage.getItem("authToken");
@@ -49,23 +51,17 @@ const AgentsTable = () => {
 
 			if (error.response?.status === 401) {
 				// Handle token expiration
-				localStorage.removeItem("authToken");
-				toast({
-					title: "Session Expired",
-					description: "Please login again",
-					status: "error",
-					duration: 5000,
-					isClosable: true,
-				});
+				handleTokenExpired();
+				return;
 			}
 		} finally {
 			setLoading(false);
 		}
-	};
+	}, [handleTokenExpired, toast]);
 
 	useEffect(() => {
 		fetchAgents();
-	}, []);
+	}, [fetchAgents]);
 
 	// Format date to readable format
 	const formatDate = (dateString) => {
@@ -73,10 +69,53 @@ const AgentsTable = () => {
 		return new Date(dateString).toLocaleDateString(undefined, options);
 	};
 
-	// Combine first and last name
+	// Combine first and last name with avatar
 	const fullNameTemplate = (rowData) => {
-		return `${rowData.firstName} ${rowData.lastName}`;
+		return (
+			<HStack spacing={3}>
+				<Avatar size="sm" name={`${rowData.firstName} ${rowData.lastName}`} />
+				<VStack align="start" spacing={0}>
+					<Text fontWeight="medium">{`${rowData.firstName} ${rowData.lastName}`}</Text>
+					<Text fontSize="sm" color="gray.500">Agent</Text>
+				</VStack>
+			</HStack>
+		);
 	};
+
+	// Format apartment count with badge
+	const apartmentCountTemplate = (rowData) => {
+		return (
+			<Badge
+				colorScheme={rowData.apartmentCount > 0 ? "green" : "gray"}
+				variant="subtle"
+				borderRadius="full"
+				px={3}
+				py={1}
+			>
+				{rowData.apartmentCount}
+			</Badge>
+		);
+	};
+
+	// Format imported apartments with badge
+	const importedApartmentsTemplate = (rowData) => {
+		return (
+			<Badge
+				colorScheme={rowData.importedApartments > 0 ? "blue" : "gray"}
+				variant="subtle"
+				borderRadius="full"
+				px={3}
+				py={1}
+			>
+				{rowData.importedApartments}
+			</Badge>
+		);
+	};
+
+	// Calculate statistics
+	const totalApartments = agents.reduce((sum, agent) => sum + agent.apartmentCount, 0);
+	const totalImported = agents.reduce((sum, agent) => sum + agent.importedApartments, 0);
+	const activeAgents = agents.filter(agent => agent.apartmentCount > 0).length;
 
 	return (
 		<Flex flexDirection="column" pt={{ base: "120px", md: "75px" }}>
@@ -86,65 +125,125 @@ const AgentsTable = () => {
 				</Flex>
 			) : (
 				<Fragment>
-					<SimpleGrid columns={{ sm: 1, md: 2, xl: 4 }} spacing="24px">
-						{/* You can add statistics cards here if needed */}
+					<SimpleGrid columns={{ sm: 1, md: 2, xl: 4 }} spacing="24px" mb="30px">
+						<Card p="20px" bg="linear-gradient(135deg, #667eea 0%, #764ba2 100%)" color="white">
+							<Stat>
+								<StatLabel fontSize="md" opacity={0.8}>Total Agents</StatLabel>
+								<StatNumber fontSize="2xl" fontWeight="bold">{totalAgents}</StatNumber>
+								<StatHelpText fontSize="sm" opacity={0.7}>Registered users</StatHelpText>
+							</Stat>
+						</Card>
+
+						<Card p="20px" bg="linear-gradient(135deg, #f093fb 0%, #f5576c 100%)" color="white">
+							<Stat>
+								<StatLabel fontSize="md" opacity={0.8}>Active Agents</StatLabel>
+								<StatNumber fontSize="2xl" fontWeight="bold">{activeAgents}</StatNumber>
+								<StatHelpText fontSize="sm" opacity={0.7}>With apartments</StatHelpText>
+							</Stat>
+						</Card>
+
+						<Card p="20px" bg="linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)" color="white">
+							<Stat>
+								<StatLabel fontSize="md" opacity={0.8}>Total Apartments</StatLabel>
+								<StatNumber fontSize="2xl" fontWeight="bold">{totalApartments}</StatNumber>
+								<StatHelpText fontSize="sm" opacity={0.7}>All listings</StatHelpText>
+							</Stat>
+						</Card>
+
+						<Card p="20px" bg="linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)" color="white">
+							<Stat>
+								<StatLabel fontSize="md" opacity={0.8}>Imported</StatLabel>
+								<StatNumber fontSize="2xl" fontWeight="bold">{totalImported}</StatNumber>
+								<StatHelpText fontSize="sm" opacity={0.7}>Import listings</StatHelpText>
+							</Stat>
+						</Card>
 					</SimpleGrid>
 
-					<Card p="16px" mt="20px" w="100%">
-						<CardHeader>
-							<Flex justify="space-between" align="center" minHeight="60px" w="100%">
-								<Text fontSize="lg" color={"#de9301"} fontWeight="bold">
-									Registered Agents ({totalAgents})
-								</Text>
+					<Card p="24px" w="100%" boxShadow="xl" borderRadius="2xl" bg="white" border="1px solid" borderColor="gray.100">
+						<CardHeader pb="20px">
+							<Flex justify="space-between" align="center" w="100%">
+								<VStack align="start" spacing={1}>
+									<Text fontSize="2xl" fontWeight="bold" color="gray.800">
+										Agents Management
+									</Text>
+									<Text fontSize="md" color="gray.500">
+										Manage and monitor all registered agents
+									</Text>
+								</VStack>
 							</Flex>
 						</CardHeader>
 
 						<CardBody display={"block"}>
-							<DataTable
-								value={agents}
-								paginator
-								rows={5}
-								rowsPerPageOptions={[5, 10, 25, 50]}
-								emptyMessage="No agents found, Try again later."
-								loading={loading}
-							>
-								<Column
-									sortable
-									field="firstName"
-									header="Agent Name"
-									body={fullNameTemplate}
-									style={{ width: "25%" }}
-								></Column>
+							<Box borderRadius="xl" overflow="hidden" border="1px solid" borderColor="gray.200">
+								<DataTable
+									value={agents}
+									paginator
+									rows={10}
+									rowsPerPageOptions={[5, 10, 25, 50]}
+									emptyMessage="No agents found. Try again later."
+									loading={loading}
+									stripedRows
+									rowHover
+									scrollable
+									scrollHeight="500px"
+								>
+									<Column
+										sortable
+										field="firstName"
+										header="Agent"
+										body={fullNameTemplate}
+										style={{ width: "30%", padding: "16px" }}
+										headerStyle={{ backgroundColor: "#f8f9fa", fontWeight: "600", padding: "16px" }}
+									></Column>
 
-								<Column
-									sortable
-									field="email"
-									header="Agent Email"
-									style={{ width: "25%" }}
-								></Column>
+									<Column
+										sortable
+										field="email"
+										header="Email"
+										style={{ width: "25%", padding: "16px" }}
+										headerStyle={{ backgroundColor: "#f8f9fa", fontWeight: "600", padding: "16px" }}
+									></Column>
 
-								<Column
-									sortable
-									field="phone"
-									header="Agent Phone"
-									style={{ width: "20%" }}
-								></Column>
+									<Column
+										sortable
+										field="phone"
+										header="Phone"
+										style={{ width: "15%", padding: "16px" }}
+										headerStyle={{ backgroundColor: "#f8f9fa", fontWeight: "600", padding: "16px" }}
+									></Column>
 
-								<Column
-									sortable
-									field="apartmentCount"
-									header="Apartments"
-									style={{ width: "15%" }}
-								></Column>
+									<Column
+										sortable
+										field="apartmentCount"
+										header="Apartments"
+										body={apartmentCountTemplate}
+										style={{ width: "10%", padding: "16px" }}
+										headerStyle={{ backgroundColor: "#f8f9fa", fontWeight: "600", padding: "16px" }}
+									></Column>
 
-								<Column
-									sortable
-									field="createdAt"
-									header="Joined Date"
-									body={(row) => formatDate(row.createdAt)}
-									style={{ width: "15%" }}
-								></Column>
-							</DataTable>
+									<Column
+										sortable
+										field="importedApartments"
+										header="Imported"
+										body={importedApartmentsTemplate}
+										style={{ width: "10%", padding: "16px" }}
+										headerStyle={{ backgroundColor: "#f8f9fa", fontWeight: "600", padding: "16px" }}
+									></Column>
+
+									<Column
+										sortable
+										field="createdAt"
+										header="Joined"
+										body={(row) => (
+											<Text fontSize="sm" color="gray.600">
+												{formatDate(row.createdAt)}
+											</Text>
+										)}
+										style={{ width: "15%", padding: "16px" }}
+										headerStyle={{ backgroundColor: "#f8f9fa", fontWeight: "600", padding: "16px" }}
+									></Column>
+								</DataTable>
+							</Box>
 						</CardBody>
 					</Card>
 				</Fragment>

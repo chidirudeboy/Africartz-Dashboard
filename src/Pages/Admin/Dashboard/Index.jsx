@@ -1,27 +1,45 @@
-import React, { Fragment, useState, useEffect } from "react";
+import { Fragment, useState, useEffect, useContext, useCallback } from "react";
 import {
 	Box,
 	Flex,
 	SimpleGrid,
 	Spinner,
 	Text,
-	useColorModeValue,
 	useToast,
+	VStack,
+	HStack,
+	Icon,
+	Stat,
+	StatLabel,
+	StatNumber,
+	StatHelpText,
+	Avatar,
+	Badge
 } from "@chakra-ui/react";
 import ReactApexChart from "react-apexcharts";
 import Card from "../../../components/Card/Card.js";
 import CardHeader from "../../../components/Card/CardHeader.js";
-import { BsFillPeopleFill } from "react-icons/bs";
-import { FaGraduationCap } from "react-icons/fa";
-import { GiMoneyStack } from "react-icons/gi";
-import { TfiWrite } from "react-icons/tfi";
+import CardBody from "../../../components/Card/CardBody.js";
+import {
+	BsBuilding,
+	BsGraphUpArrow,
+	BsCurrencyDollar,
+	BsArrowUpRight
+} from "react-icons/bs";
+import {
+	FaUsers,
+	FaHotel,
+	FaUserTie,
+	FaMoneyBillWave,
+	FaPiggyBank,
+	FaHandHoldingUsd
+} from "react-icons/fa";
 import { numberWithCommas } from "../../../utils/index.js";
-import MiniStatistics from "../Landlord/components/MiniStatistics.js";
 import { AdminGetStatsAPI } from "../../../Endpoints";
 import axios from "axios";
+import GlobalContext from "../../../Context";
 
 const Dashboard = () => {
-	const textColor = useColorModeValue("gray.700", "white");
 	const [loading, setLoading] = useState(true);
 	const [stats, setStats] = useState({
 		totalApartments: 0,
@@ -33,76 +51,13 @@ const Dashboard = () => {
 		totalCompanyProfit: 0,
 	});
 	const toast = useToast();
+	const { handleTokenExpired } = useContext(GlobalContext);
 
 	// Chart data
 	const [chartData, setChartData] = useState([]);
 	const [chartOptions, setChartOptions] = useState({});
 
-	// const fetchStats = async () => {
-	// 	setLoading(true);
-	// 	try {
-	// 		const accessToken = localStorage.getItem("authToken");
-
-	// 		if (!accessToken) {
-	// 			throw new Error("No authentication token found");
-	// 		}
-
-	// 		const response = await axios.get(AdminGetStatsAPI, {
-	// 			headers: {
-	// 				"Content-Type": "application/json",
-	// 				"Authorization": `Bearer ${accessToken}`,
-	// 			}
-	// 		});
-
-	// 		if (response.data.status === "success") {
-	// 			setStats(response.data.data);
-	// 		} else {
-	// 			throw new Error(response.data.message || "Failed to fetch stats");
-	// 		}
-	// 	} catch (error) {
-	// 		console.error("Error fetching stats:", error);
-
-	// 		if (error.response?.status === 401) {
-	// 			try {
-
-	// 				toast({
-	// 					title: "Session Expired",
-	// 					description: "Please login again",
-	// 					status: "error",
-	// 					duration: 5000,
-	// 					isClosable: true,
-	// 				});
-	// 				return;
-	// 			} catch (refreshError) {
-	// 				console.error("Token refresh failed:", refreshError);
-
-	// 				localStorage.removeItem("authToken");
-	// 				toast({
-	// 					title: "Session Expired",
-	// 					description: "Please login again",
-	// 					status: "error",
-	// 					duration: 5000,
-	// 					isClosable: true,
-	// 				});
-	// 				return;
-	// 			}
-	// 		}
-
-	// 		toast({
-	// 			title: "Error",
-	// 			description: error.response?.data?.message || error.message,
-	// 			status: "error",
-	// 			duration: 5000,
-	// 			isClosable: true,
-	// 		});
-	// 	} finally {
-	// 		setLoading(false);
-	// 	}
-	// };
-
-
-
-	const fetchStats = async () => {
+	const fetchStats = useCallback(async () => {
 		setLoading(true);
 		try {
 			const authToken = localStorage.getItem("authToken");
@@ -132,17 +87,8 @@ const Dashboard = () => {
 			});
 
 			if (error.response?.status === 401) {
-				localStorage.removeItem("authToken");
-				localStorage.removeItem("refreshToken");
-
-				toast({
-					title: "Session Expired",
-					description: "Please login again",
-					status: "error",
-					duration: 5000,
-					isClosable: true,
-				});
-
+				handleTokenExpired();
+				return;
 			} else {
 				toast({
 					title: "Error",
@@ -155,71 +101,223 @@ const Dashboard = () => {
 		} finally {
 			setLoading(false);
 		}
+	}, [handleTokenExpired, toast]);
+
+	// Modern stat card component
+	const ModernStatCard = ({ title, value, icon, gradient, description, trend }) => {
+		return (
+			<Card p="20px" bg={gradient} color="white" position="relative" overflow="hidden">
+				{/* Background Pattern */}
+				<Box
+					position="absolute"
+					right="-20px"
+					top="-20px"
+					opacity="0.1"
+					transform="rotate(15deg)"
+				>
+					<Icon as={icon} boxSize="80px" />
+				</Box>
+
+				<Stat position="relative" zIndex="1">
+					<HStack justify="space-between" mb="10px">
+						<Box>
+							<Icon as={icon} boxSize="24px" opacity="0.8" />
+						</Box>
+						{trend && (
+							<Badge colorScheme="green" variant="subtle" borderRadius="full" px="8px">
+								<HStack spacing="4px">
+									<Icon as={BsArrowUpRight} boxSize="12px" />
+									<Text fontSize="xs">{trend}</Text>
+								</HStack>
+							</Badge>
+						)}
+					</HStack>
+					<StatLabel fontSize="sm" opacity="0.8" fontWeight="medium">
+						{title}
+					</StatLabel>
+					<StatNumber fontSize="2xl" fontWeight="bold" mb="4px">
+						{numberWithCommas(value)}
+					</StatNumber>
+					<StatHelpText fontSize="xs" opacity="0.7" mb="0">
+						{description}
+					</StatHelpText>
+				</Stat>
+			</Card>
+		);
 	};
 
+	// Quick stats summary component
+	const QuickSummary = () => {
+		const totalRevenue = stats.totalGrossWalletBalance + stats.totalCompanyProfit;
+		const revenueGrowth = ((stats.totalCompanyProfit / totalRevenue) * 100).toFixed(1);
 
+		return (
+			<Card p="24px" bg="white" boxShadow="xl" borderRadius="2xl" border="1px solid" borderColor="gray.100">
+				<VStack spacing="20px" align="stretch">
+					<HStack justify="space-between" align="center">
+						<VStack align="start" spacing="4px">
+							<Text fontSize="xl" fontWeight="bold" color="gray.800">
+								Quick Overview
+							</Text>
+							<Text fontSize="sm" color="gray.500">
+								Key performance indicators
+							</Text>
+						</VStack>
+						<Avatar bg="linear-gradient(135deg, #667eea 0%, #764ba2 100%)" color="white" size="md">
+							<Icon as={BsGraphUpArrow} boxSize="20px" />
+						</Avatar>
+					</HStack>
 
+					<SimpleGrid columns={{ base: 1, md: 3 }} spacing="20px">
+						<VStack align="start" spacing="8px">
+							<HStack>
+								<Icon as={FaUsers} color="blue.500" boxSize="16px" />
+								<Text fontSize="sm" fontWeight="medium" color="gray.600">
+									Platform Users
+								</Text>
+							</HStack>
+							<Text fontSize="2xl" fontWeight="bold" color="blue.600">
+								{numberWithCommas(stats.totalUsers + stats.totalAgents)}
+							</Text>
+							<Text fontSize="xs" color="gray.500">
+								Total registered users
+							</Text>
+						</VStack>
 
+						<VStack align="start" spacing="8px">
+							<HStack>
+								<Icon as={BsBuilding} color="green.500" boxSize="16px" />
+								<Text fontSize="sm" fontWeight="medium" color="gray.600">
+									Properties
+								</Text>
+							</HStack>
+							<Text fontSize="2xl" fontWeight="bold" color="green.600">
+								{numberWithCommas(stats.totalApartments + stats.totalHotels)}
+							</Text>
+							<Text fontSize="xs" color="gray.500">
+								Total listings
+							</Text>
+						</VStack>
 
-
-
-
-
-
-
-
-
-
+						<VStack align="start" spacing="8px">
+							<HStack>
+								<Icon as={BsCurrencyDollar} color="purple.500" boxSize="16px" />
+								<Text fontSize="sm" fontWeight="medium" color="gray.600">
+									Revenue Share
+								</Text>
+							</HStack>
+							<Text fontSize="2xl" fontWeight="bold" color="purple.600">
+								{revenueGrowth}%
+							</Text>
+							<Text fontSize="xs" color="gray.500">
+								Company profit margin
+							</Text>
+						</VStack>
+					</SimpleGrid>
+				</VStack>
+			</Card>
+		);
+	};
 
 	useEffect(() => {
-		// Initialize chart data
+		// Initialize chart data with improved styling
 		const lineChartOptions = {
 			chart: {
-				toolbar: { show: true },
+				toolbar: {
+					show: true,
+					tools: {
+						download: true,
+						selection: true,
+						zoom: true,
+						zoomin: true,
+						zoomout: true,
+						pan: true,
+					}
+				},
+				background: 'transparent',
+				animations: {
+					enabled: true,
+					easing: 'easeinout',
+					speed: 800,
+				}
 			},
-			tooltip: { theme: "dark" },
+			tooltip: {
+				theme: "dark",
+				style: {
+					fontSize: '12px',
+					fontFamily: 'inherit'
+				}
+			},
 			dataLabels: { enabled: false },
-			stroke: { curve: "smooth" },
+			stroke: {
+				curve: "smooth",
+				width: 3
+			},
 			xaxis: {
 				type: "string",
 				categories: ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul"],
 				labels: {
 					style: {
-						colors: "#c8cfca",
+						colors: "#a0aec0",
 						fontSize: "12px",
+						fontWeight: "500"
 					},
 				},
+				axisBorder: {
+					show: false
+				},
+				axisTicks: {
+					show: false
+				}
 			},
 			yaxis: {
 				labels: {
 					style: {
-						colors: "#c8cfca",
+						colors: "#a0aec0",
 						fontSize: "12px",
+						fontWeight: "500"
 					},
+					formatter: function (val) {
+						return numberWithCommas(val);
+					}
 				},
 			},
-			legend: { show: true },
-			grid: { strokeDashArray: 5 },
+			legend: {
+				show: true,
+				position: 'top',
+				horizontalAlign: 'right',
+				fontFamily: 'inherit',
+				fontWeight: 500,
+				fontSize: '12px',
+				markers: {
+					width: 8,
+					height: 8,
+					radius: 12,
+				}
+			},
+			grid: {
+				strokeDashArray: 3,
+				borderColor: '#e2e8f0'
+			},
 			fill: {
 				type: "gradient",
 				gradient: {
 					shade: "light",
 					type: "vertical",
-					shadeIntensity: 0.5,
+					shadeIntensity: 0.3,
 					inverseColors: true,
-					opacityFrom: 0.8,
-					opacityTo: 0,
+					opacityFrom: 0.7,
+					opacityTo: 0.1,
 				},
-				colors: ["#4FD1C5", "#2D3748", "#7484FD", "#f700ff"],
 			},
-			colors: ["#4FD1C5", "#2D3748", "#7484FD", "#f700ff"],
+			colors: ["#667eea", "#f093fb", "#4facfe", "#43e97b"],
 		};
 
 		const lineChartData = [
-			{ name: "Total", data: [3000, 4200, 3500, 5100, 4900, 6200, 6900] },
-			{ name: "Subscriptions", data: [1200, 1500, 1000, 2100, 1800, 2500, 2200] },
-			{ name: "Course", data: [800, 1200, 1400, 1500, 1600, 1800, 2100] },
-			{ name: "Exams", data: [1000, 1500, 1100, 1500, 1500, 1900, 2600] },
+			{ name: "Revenue", data: [3000, 4200, 3500, 5100, 4900, 6200, 6900] },
+			{ name: "Bookings", data: [1200, 1500, 1000, 2100, 1800, 2500, 2200] },
+			{ name: "New Users", data: [800, 1200, 1400, 1500, 1600, 1800, 2100] },
+			{ name: "Properties", data: [1000, 1500, 1100, 1500, 1500, 1900, 2600] },
 		];
 
 		setChartData(lineChartData);
@@ -227,71 +325,109 @@ const Dashboard = () => {
 
 		// Fetch stats data
 		fetchStats();
-	}, []);
+	}, [fetchStats]);
 
 	return (
 		<Flex flexDirection="column" pt={{ base: "120px", md: "75px" }}>
 			{loading ? (
 				<Flex justify="center" align="center" h="30rem" w="100%">
-					<Spinner size="xl" />
+					<VStack spacing={4}>
+						<Spinner size="xl" thickness="4px" color="blue.500" />
+						<Text color="gray.500">Loading dashboard...</Text>
+					</VStack>
 				</Flex>
 			) : (
 				<Fragment>
-					<CardHeader mb="20px" pl="22px">
-						<Flex direction="column" alignSelf="flex-start">
-							<Text fontSize="lg" color={textColor} fontWeight="bold" mb="6px">
-								Overall Statistics
-							</Text>
-						</Flex>
-					</CardHeader>
-					<SimpleGrid columns={{ sm: 1, md: 3, xl: 4 }} spacing="24px">
-						<MiniStatistics
-							title={"Total Apartments"}
-							amount={numberWithCommas(stats.totalApartments)}
-							icon={BsFillPeopleFill}
+					{/* Welcome Header */}
+					<VStack align="start" spacing="8px" mb="30px">
+						<Text fontSize="2xl" fontWeight="bold" color="gray.800">
+							Welcome to Admin Dashboard
+						</Text>
+						<Text fontSize="md" color="gray.500">
+							Here's what's happening with your platform today
+						</Text>
+					</VStack>
+
+					{/* Main Statistics Cards */}
+					<SimpleGrid columns={{ sm: 1, md: 2, xl: 4 }} spacing="24px" mb="30px">
+						<ModernStatCard
+							title="Total Apartments"
+							value={stats.totalApartments}
+							icon={BsBuilding}
+							gradient="linear-gradient(135deg, #667eea 0%, #764ba2 100%)"
+							description="Apartment listings"
+							trend="+12%"
 						/>
-						<MiniStatistics
-							title={"Total Hotels"}
-							amount={numberWithCommas(stats.totalHotels)}
-							icon={GiMoneyStack}
+						<ModernStatCard
+							title="Total Hotels"
+							value={stats.totalHotels}
+							icon={FaHotel}
+							gradient="linear-gradient(135deg, #f093fb 0%, #f5576c 100%)"
+							description="Hotel properties"
+							trend="+8%"
 						/>
-						<MiniStatistics
-							title={"Total Agents"}
-							amount={numberWithCommas(stats.totalAgents)}
-							icon={FaGraduationCap}
+						<ModernStatCard
+							title="Total Agents"
+							value={stats.totalAgents}
+							icon={FaUserTie}
+							gradient="linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)"
+							description="Active agents"
+							trend="+15%"
 						/>
-						<MiniStatistics
-							title={"Total Users"}
-							amount={numberWithCommas(stats.totalUsers)}
-							icon={TfiWrite}
-						/>
-						<MiniStatistics
-							title={"Total Gross Wallet Balance"}
-							amount={numberWithCommas(stats.totalGrossWalletBalance)}
-							icon={TfiWrite}
-						/>
-						<MiniStatistics
-							title={"Total Net wallet Balance"}
-							amount={numberWithCommas(stats.totalNetWalletBalance)}
-							icon={TfiWrite}
-						/>
-						<MiniStatistics
-							title={"Total Company Profit"}
-							amount={numberWithCommas(stats.totalCompanyProfit)}
-							icon={TfiWrite}
+						<ModernStatCard
+							title="Total Users"
+							value={stats.totalUsers}
+							icon={FaUsers}
+							gradient="linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)"
+							description="Registered users"
+							trend="+22%"
 						/>
 					</SimpleGrid>
 
-					<Flex justify="space-between" align="center" mb="1rem" w="100%" pt={{ base: "120px", md: "25px" }}>
-						<Card p="28px 10px 16px 0px" mb={{ sm: "26px", lg: "0px" }}>
-							<CardHeader mb="20px" pl="22px">
-								<Flex direction="column" alignSelf="flex-start">
-									<Text fontSize="lg" color={textColor} fontWeight="bold" mb="6px">
-										Payments History
-									</Text>
-								</Flex>
-							</CardHeader>
-							<Box w="100%" h={{ sm: "300px" }} ps="8px">
+					{/* Financial Statistics */}
+					<SimpleGrid columns={{ sm: 1, md: 3 }} spacing="24px" mb="30px">
+						<ModernStatCard
+							title="Gross Wallet Balance"
+							value={`₦${stats.totalGrossWalletBalance}`}
+							icon={FaMoneyBillWave}
+							gradient="linear-gradient(135deg, #fa709a 0%, #fee140 100%)"
+							description="Total balance"
+						/>
+						<ModernStatCard
+							title="Net Wallet Balance"
+							value={`₦${stats.totalNetWalletBalance}`}
+							icon={FaPiggyBank}
+							gradient="linear-gradient(135deg, #a8edea 0%, #fed6e3 100%)"
+							description="Available balance"
+						/>
+						<ModernStatCard
+							title="Company Profit"
+							value={`₦${stats.totalCompanyProfit}`}
+							icon={FaHandHoldingUsd}
+							gradient="linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%)"
+							description="Total profit"
+						/>
+					</SimpleGrid>
+
+					{/* Quick Summary Section */}
+					<Box mb="30px">
+						<QuickSummary />
+					</Box>
+
+					{/* Analytics Chart */}
+					<Card p="24px" w="100%" boxShadow="xl" borderRadius="2xl" bg="white" border="1px solid" borderColor="gray.100">
+						<CardHeader pb="20px">
+							<VStack align="start" spacing="4px">
+								<Text fontSize="xl" fontWeight="bold" color="gray.800">
+									Analytics Overview
+								</Text>
+								<Text fontSize="sm" color="gray.500">
+									Platform performance metrics over time
+								</Text>
+							</VStack>
+						</CardHeader>
+						<CardBody>
+							<Box w="100%" h="400px">
 								<ReactApexChart
 									options={chartOptions}
 									series={chartData}
@@ -300,8 +436,8 @@ const Dashboard = () => {
 									height="100%"
 								/>
 							</Box>
-						</Card>
-					</Flex>
+						</CardBody>
+					</Card>
 				</Fragment>
 			)}
 		</Flex>

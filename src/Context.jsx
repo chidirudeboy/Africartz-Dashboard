@@ -170,6 +170,11 @@ export function GlobalProvider({ children }) {
 		localStorage.removeItem("refreshToken");
 	};
 
+	const handleTokenExpired = () => {
+		console.log('Token expired, logging out user');
+		logOut();
+	};
+
 	useEffect(() => {
 		// check if user is logged in
 		fetchUserProfile();
@@ -192,6 +197,7 @@ export function GlobalProvider({ children }) {
 				storeToken,
 				setLoading,
 				fetchUserProfile,
+				handleTokenExpired,
 			}}
 		>
 			{children}

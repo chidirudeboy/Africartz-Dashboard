@@ -1,32 +1,33 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, Fragment } from 'react';
 import {
 	Box,
 	Text,
 	VStack,
 	HStack,
-	Table,
-	Thead,
-	Tbody,
-	Tr,
-	Th,
-	Td,
-	Button,
 	Select,
 	Input,
 	Badge,
 	Spinner,
 	Alert,
 	AlertIcon,
-	Card,
-	CardBody,
-	Heading,
-	ButtonGroup,
 	SimpleGrid,
 	InputGroup,
 	InputLeftElement,
-	Icon
+	Icon,
+	Flex,
+	useToast,
+	Stat,
+	StatLabel,
+	StatNumber,
+	StatHelpText,
+	Avatar
 } from '@chakra-ui/react';
 import { FaSearch } from 'react-icons/fa';
+import { Column } from "primereact/column";
+import { DataTable } from "primereact/datatable";
+import Card from "../../../components/Card/Card.js";
+import CardBody from "../../../components/Card/CardBody.js";
+import CardHeader from "../../../components/Card/CardHeader.js";
 import { AdminGetAllReservationsAPI } from '../../../Endpoints';
 
 const ReservationsIndex = () => {
@@ -46,6 +47,7 @@ const ReservationsIndex = () => {
 		pages: 1,
 		total: 0
 	});
+	const toast = useToast();
 
 	const fetchAllReservations = useCallback(async () => {
 		try {
@@ -56,7 +58,6 @@ const ReservationsIndex = () => {
 			Object.entries(filters).forEach(([key, value]) => {
 				if (value) queryParams.append(key, value);
 			});
-
 
 			const response = await fetch(`${AdminGetAllReservationsAPI}?${queryParams}`, {
 				method: 'GET',
@@ -75,10 +76,17 @@ const ReservationsIndex = () => {
 			setPagination(data.data?.pagination || { page: 1, pages: 1, total: 0 });
 		} catch (err) {
 			setError(err.message);
+			toast({
+				title: "Error",
+				description: err.message,
+				status: "error",
+				duration: 5000,
+				isClosable: true,
+			});
 		} finally {
 			setLoading(false);
 		}
-	}, [filters]);
+	}, [filters, toast]);
 
 	useEffect(() => {
 		fetchAllReservations();
@@ -89,13 +97,6 @@ const ReservationsIndex = () => {
 			...prev,
 			[key]: value,
 			page: 1
-		}));
-	};
-
-	const handlePageChange = (newPage) => {
-		setFilters(prev => ({
-			...prev,
-			page: newPage
 		}));
 	};
 
@@ -127,14 +128,98 @@ const ReservationsIndex = () => {
 		return types[type] || type;
 	};
 
+	// Template functions for DataTable
+	const guestTemplate = (rowData) => {
+		return (
+			<HStack spacing={3}>
+				<Avatar size="sm" name={`${rowData.userFirstName} ${rowData.userLastName}`} />
+				<VStack align="start" spacing={0}>
+					<Text fontWeight="medium" fontSize="sm">
+						{rowData.userFirstName} {rowData.userLastName}
+					</Text>
+					<Text fontSize="xs" color="gray.500">
+						{rowData.userId?.email || 'N/A'}
+					</Text>
+				</VStack>
+			</HStack>
+		);
+	};
+
+	const apartmentTemplate = (rowData) => {
+		return (
+			<VStack align="start" spacing={1}>
+				<Text fontSize="sm" fontWeight="medium">
+					{rowData.apartmentName}
+				</Text>
+				<Text fontSize="xs" color="gray.500">
+					{rowData.apartmentAddress}
+				</Text>
+				<Text fontSize="xs" color="gray.500">
+					{rowData.apartmentState}
+				</Text>
+			</VStack>
+		);
+	};
+
+	const agentTemplate = (rowData) => {
+		return (
+			<HStack spacing={2}>
+				<Avatar size="xs" name={`${rowData.agentId?.firstName} ${rowData.agentId?.lastName}`} />
+				<VStack align="start" spacing={0}>
+					<Text fontSize="sm">
+						{rowData.agentId?.firstName} {rowData.agentId?.lastName}
+					</Text>
+					<Text fontSize="xs" color="gray.500">
+						{rowData.agentId?.email}
+					</Text>
+				</VStack>
+			</HStack>
+		);
+	};
+
+	const statusTemplate = (rowData) => {
+		return (
+			<Badge colorScheme={getStatusColor(rowData.status)} size="sm" borderRadius="full" px={3} py={1}>
+				{rowData.status}
+			</Badge>
+		);
+	};
+
+	const typeTemplate = (rowData) => {
+		const typeColors = {
+			'normal': 'blue',
+			'emergency': 'red',
+			'extended': 'purple'
+		};
+		return (
+			<Badge colorScheme={typeColors[rowData.reservationType] || 'gray'} variant="subtle" borderRadius="full" px={2} py={1}>
+				{getReservationType(rowData.reservationType)}
+			</Badge>
+		);
+	};
+
+	const idTemplate = (rowData) => {
+		return (
+			<Text fontSize="sm" fontFamily="mono" color="gray.600">
+				{rowData._id ? rowData._id.slice(-8) : 'N/A'}
+			</Text>
+		);
+	};
+
+	// Calculate statistics
+	const totalReservations = pagination.total;
+	const pendingReservations = reservations.filter(r => r.status === 'pending').length;
+	const confirmedReservations = reservations.filter(r => r.status === 'confirmed' || r.status === 'accepted').length;
+	const completedReservations = reservations.filter(r => r.status === 'completed').length;
+
 	if (loading && (!reservations || reservations.length === 0)) {
 		return (
-			<Box p={8} display="flex" justifyContent="center">
+			<Flex justify="center" align="center" h="30rem" w="100%">
 				<VStack spacing={4}>
-					<Spinner size="xl" color="blue.500" />
+					<Spinner size="xl" />
 					<Text>Loading reservations...</Text>
 				</VStack>
-			</Box>
+			</Flex>
 		);
 	}
 
@@ -150,243 +235,247 @@ const ReservationsIndex = () => {
 	}
 
 	return (
-		<Box p={6} pt={20}>
-			<VStack spacing={6} align="stretch">
-				{/* Header */}
-				<Box>
-					<Text fontSize="2xl" fontWeight="bold" mb={2}>
-						Reservations Management
-					</Text>
-					<Text color="gray.600">
-						Monitor and manage all platform reservations
-					</Text>
-				</Box>
+		<Flex flexDirection="column" pt={{ base: "120px", md: "75px" }}>
+			{loading ? (
+				<Flex justify="center" align="center" h="30rem" w="100%">
+					<Spinner size="xl" />
+				</Flex>
+			) : (
+				<Fragment>
+					{/* Statistics Cards */}
+					<SimpleGrid columns={{ sm: 1, md: 2, xl: 4 }} spacing="24px" mb="30px">
+						<Card p="20px" bg="linear-gradient(135deg, #667eea 0%, #764ba2 100%)" color="white">
+							<Stat>
+								<StatLabel fontSize="md" opacity={0.8}>Total Reservations</StatLabel>
+								<StatNumber fontSize="2xl" fontWeight="bold">{totalReservations}</StatNumber>
+								<StatHelpText fontSize="sm" opacity={0.7}>All bookings</StatHelpText>
+							</Stat>
+						</Card>
 
-				{/* Filters */}
-				<Card>
-					<CardBody>
-						<Heading size="sm" mb={4}>Filters & Search</Heading>
-						<SimpleGrid columns={{ base: 1, md: 2, lg: 5 }} spacing={4}>
-							<Box>
-								<Text fontSize="sm" mb={2}>Search</Text>
-								<InputGroup>
-									<InputLeftElement pointerEvents="none">
-										<Icon as={FaSearch} color="gray.400" />
-									</InputLeftElement>
-									<Input
-										placeholder="Search by name, email, apartment..."
-										value={filters.search}
-										onChange={(e) => handleFilterChange('search', e.target.value)}
-									/>
-								</InputGroup>
-							</Box>
+						<Card p="20px" bg="linear-gradient(135deg, #f093fb 0%, #f5576c 100%)" color="white">
+							<Stat>
+								<StatLabel fontSize="md" opacity={0.8}>Pending</StatLabel>
+								<StatNumber fontSize="2xl" fontWeight="bold">{pendingReservations}</StatNumber>
+								<StatHelpText fontSize="sm" opacity={0.7}>Awaiting approval</StatHelpText>
+							</Stat>
+						</Card>
 
-							<Box>
-								<Text fontSize="sm" mb={2}>Status</Text>
-								<Select
-									placeholder="All Statuses"
-									value={filters.status}
-									onChange={(e) => handleFilterChange('status', e.target.value)}
-								>
-									<option value="pending">Pending</option>
-									<option value="accepted">Accepted</option>
-									<option value="cancelled">Cancelled</option>
-									<option value="confirmed">Confirmed</option>
-									<option value="completed">Completed</option>
-								</Select>
-							</Box>
+						<Card p="20px" bg="linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)" color="white">
+							<Stat>
+								<StatLabel fontSize="md" opacity={0.8}>Confirmed</StatLabel>
+								<StatNumber fontSize="2xl" fontWeight="bold">{confirmedReservations}</StatNumber>
+								<StatHelpText fontSize="sm" opacity={0.7}>Active bookings</StatHelpText>
+							</Stat>
+						</Card>
 
-							<Box>
-								<Text fontSize="sm" mb={2}>Check-in From</Text>
-								<Input
-									type="date"
-									value={filters.startDate}
-									onChange={(e) => handleFilterChange('startDate', e.target.value)}
-								/>
-							</Box>
+						<Card p="20px" bg="linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)" color="white">
+							<Stat>
+								<StatLabel fontSize="md" opacity={0.8}>Completed</StatLabel>
+								<StatNumber fontSize="2xl" fontWeight="bold">{completedReservations}</StatNumber>
+								<StatHelpText fontSize="sm" opacity={0.7}>Finished stays</StatHelpText>
+							</Stat>
+						</Card>
+					</SimpleGrid>
 
-							<Box>
-								<Text fontSize="sm" mb={2}>Check-in To</Text>
-								<Input
-									type="date"
-									value={filters.endDate}
-									onChange={(e) => handleFilterChange('endDate', e.target.value)}
-								/>
-							</Box>
+					{/* Filters Card */}
+					<Card p="24px" mb="24px" boxShadow="lg" borderRadius="2xl" bg="white" border="1px solid" borderColor="gray.100">
+						<CardHeader pb="20px">
+							<VStack align="start" spacing={1}>
+								<Text fontSize="xl" fontWeight="bold" color="gray.800">
+									Filters & Search
+								</Text>
+								<Text fontSize="md" color="gray.500">
+									Filter reservations by status, dates, and search criteria
+								</Text>
+							</VStack>
+						</CardHeader>
+						<CardBody>
+							<SimpleGrid columns={{ base: 1, md: 2, lg: 5 }} spacing={4}>
+								<Box>
+									<Text fontSize="sm" mb={2} fontWeight="medium">Search</Text>
+									<InputGroup>
+										<InputLeftElement pointerEvents="none">
+											<Icon as={FaSearch} color="gray.400" />
+										</InputLeftElement>
+										<Input
+											placeholder="Search by name, email, apartment..."
+											value={filters.search}
+											onChange={(e) => handleFilterChange('search', e.target.value)}
+											borderRadius="lg"
+										/>
+									</InputGroup>
+								</Box>
 
-							<Box>
-								<Text fontSize="sm" mb={2}>Results per page</Text>
-								<Select
-									value={filters.limit}
-									onChange={(e) => handleFilterChange('limit', parseInt(e.target.value))}
-								>
-									<option value={10}>10</option>
-									<option value={20}>20</option>
-									<option value={50}>50</option>
-									<option value={100}>100</option>
-								</Select>
-							</Box>
-						</SimpleGrid>
-					</CardBody>
-				</Card>
-
-				{/* Results Summary */}
-				<Box>
-					<HStack justify="space-between" mb={4}>
-						<Text>
-							Showing {((pagination.page - 1) * filters.limit) + 1} to{' '}
-							{Math.min(pagination.page * filters.limit, pagination.total)} of{' '}
-							{pagination.total} reservations
-						</Text>
-						<Text fontSize="sm" color="gray.500">
-							Page {pagination.page} of {pagination.pages}
-						</Text>
-					</HStack>
-				</Box>
-
-				{/* Reservations Table */}
-				<Card>
-					<CardBody p={0}>
-						{reservations && reservations.length > 0 ? (
-							<Box overflowX="auto">
-								<Table variant="simple">
-									<Thead bg="gray.50">
-										<Tr>
-											<Th>Reservation ID</Th>
-											<Th>Guest</Th>
-											<Th>Apartment</Th>
-											<Th>Agent</Th>
-											<Th>Check-in</Th>
-											<Th>Check-out</Th>
-											<Th>Type</Th>
-											<Th>Status</Th>
-											<Th>Created</Th>
-										</Tr>
-									</Thead>
-									<Tbody>
-										{reservations.map((reservation, index) => (
-											<Tr key={reservation._id || index}>
-												<Td fontSize="sm" fontFamily="mono">
-													{reservation._id ? reservation._id.slice(-8) : 'N/A'}
-												</Td>
-												<Td>
-													<VStack align="start" spacing={1}>
-														<Text fontSize="sm" fontWeight="medium">
-															{reservation.userFirstName} {reservation.userLastName}
-														</Text>
-														<Text fontSize="xs" color="gray.500">
-															{reservation.userId?.email || 'N/A'}
-														</Text>
-													</VStack>
-												</Td>
-												<Td>
-													<VStack align="start" spacing={1}>
-														<Text fontSize="sm" fontWeight="medium">
-															{reservation.apartmentName}
-														</Text>
-														<Text fontSize="xs" color="gray.500">
-															{reservation.apartmentAddress}
-														</Text>
-														<Text fontSize="xs" color="gray.500">
-															{reservation.apartmentState}
-														</Text>
-													</VStack>
-												</Td>
-												<Td>
-													<VStack align="start" spacing={1}>
-														<Text fontSize="sm">
-															{reservation.agentId?.firstName} {reservation.agentId?.lastName}
-														</Text>
-														<Text fontSize="xs" color="gray.500">
-															{reservation.agentId?.email}
-														</Text>
-													</VStack>
-												</Td>
-												<Td fontSize="sm">
-													{reservation.checkInDate ? formatDate(reservation.checkInDate) : 'N/A'}
-												</Td>
-												<Td fontSize="sm">
-													{reservation.checkOutDate ? formatDate(reservation.checkOutDate) : 'N/A'}
-												</Td>
-												<Td fontSize="sm">
-													{getReservationType(reservation.reservationType)}
-												</Td>
-												<Td>
-													<Badge colorScheme={getStatusColor(reservation.status)} size="sm">
-														{reservation.status}
-													</Badge>
-												</Td>
-												<Td fontSize="sm">
-													{reservation.createdAt ? formatDate(reservation.createdAt) : 'N/A'}
-												</Td>
-											</Tr>
-										))}
-									</Tbody>
-								</Table>
-							</Box>
-						) : (
-							<Box p={8} textAlign="center">
-								<Text color="gray.500">No reservations found</Text>
-							</Box>
-						)}
-					</CardBody>
-				</Card>
-
-				{/* Pagination */}
-				{pagination.pages > 1 && (
-					<Box display="flex" justifyContent="center">
-						<ButtonGroup spacing={2}>
-							<Button
-								size="sm"
-								onClick={() => handlePageChange(1)}
-								isDisabled={pagination.page === 1}
-							>
-								First
-							</Button>
-							<Button
-								size="sm"
-								onClick={() => handlePageChange(pagination.page - 1)}
-								isDisabled={pagination.page === 1}
-							>
-								Previous
-							</Button>
-
-							{Array.from({ length: Math.min(5, pagination.pages) }, (_, i) => {
-								const pageNum = Math.max(1, pagination.page - 2) + i;
-								if (pageNum > pagination.pages) return null;
-
-								return (
-									<Button
-										key={pageNum}
-										size="sm"
-										variant={pageNum === pagination.page ? 'solid' : 'outline'}
-										colorScheme={pageNum === pagination.page ? 'blue' : 'gray'}
-										onClick={() => handlePageChange(pageNum)}
+								<Box>
+									<Text fontSize="sm" mb={2} fontWeight="medium">Status</Text>
+									<Select
+										placeholder="All Statuses"
+										value={filters.status}
+										onChange={(e) => handleFilterChange('status', e.target.value)}
+										borderRadius="lg"
 									>
-										{pageNum}
-									</Button>
-								);
-							})}
+										<option value="pending">Pending</option>
+										<option value="accepted">Accepted</option>
+										<option value="cancelled">Cancelled</option>
+										<option value="confirmed">Confirmed</option>
+										<option value="completed">Completed</option>
+									</Select>
+								</Box>
 
-							<Button
-								size="sm"
-								onClick={() => handlePageChange(pagination.page + 1)}
-								isDisabled={pagination.page === pagination.pages}
-							>
-								Next
-							</Button>
-							<Button
-								size="sm"
-								onClick={() => handlePageChange(pagination.pages)}
-								isDisabled={pagination.page === pagination.pages}
-							>
-								Last
-							</Button>
-						</ButtonGroup>
-					</Box>
-				)}
-			</VStack>
-		</Box>
+								<Box>
+									<Text fontSize="sm" mb={2} fontWeight="medium">Check-in From</Text>
+									<Input
+										type="date"
+										value={filters.startDate}
+										onChange={(e) => handleFilterChange('startDate', e.target.value)}
+										borderRadius="lg"
+									/>
+								</Box>
+
+								<Box>
+									<Text fontSize="sm" mb={2} fontWeight="medium">Check-in To</Text>
+									<Input
+										type="date"
+										value={filters.endDate}
+										onChange={(e) => handleFilterChange('endDate', e.target.value)}
+										borderRadius="lg"
+									/>
+								</Box>
+
+								<Box>
+									<Text fontSize="sm" mb={2} fontWeight="medium">Results per page</Text>
+									<Select
+										value={filters.limit}
+										onChange={(e) => handleFilterChange('limit', parseInt(e.target.value))}
+										borderRadius="lg"
+									>
+										<option value={10}>10</option>
+										<option value={20}>20</option>
+										<option value={50}>50</option>
+										<option value={100}>100</option>
+									</Select>
+								</Box>
+							</SimpleGrid>
+						</CardBody>
+					</Card>
+
+					{/* Main Table Card */}
+					<Card p="24px" w="100%" boxShadow="xl" borderRadius="2xl" bg="white" border="1px solid" borderColor="gray.100">
+						<CardHeader pb="20px">
+							<Flex justify="space-between" align="center" w="100%">
+								<VStack align="start" spacing={1}>
+									<Text fontSize="2xl" fontWeight="bold" color="gray.800">
+										Reservations Management
+									</Text>
+									<Text fontSize="md" color="gray.500">
+										Monitor and manage all platform reservations
+									</Text>
+								</VStack>
+								<HStack>
+									<Text fontSize="sm" color="gray.500">
+										Showing {((pagination.page - 1) * filters.limit) + 1} to{' '}
+										{Math.min(pagination.page * filters.limit, pagination.total)} of{' '}
+										{pagination.total} reservations
+									</Text>
+								</HStack>
+							</Flex>
+						</CardHeader>
+
+						<CardBody display={"block"}>
+							<Box borderRadius="xl" overflow="hidden" border="1px solid" borderColor="gray.200">
+								<DataTable
+									value={reservations}
+									paginator
+									rows={filters.limit}
+									rowsPerPageOptions={[10, 20, 50, 100]}
+									emptyMessage="No reservations found. Try adjusting your filters."
+									loading={loading}
+									stripedRows
+									rowHover
+									scrollable
+									scrollHeight="600px"
+									first={(pagination.page - 1) * filters.limit}
+									totalRecords={pagination.total}
+									lazy
+								>
+									<Column
+										field="_id"
+										header="ID"
+										body={idTemplate}
+										style={{ width: "8%", padding: "16px" }}
+										headerStyle={{ backgroundColor: "#f8f9fa", fontWeight: "600", padding: "16px" }}
+									></Column>
+
+									<Column
+										field="userFirstName"
+										header="Guest"
+										body={guestTemplate}
+										style={{ width: "20%", padding: "16px" }}
+										headerStyle={{ backgroundColor: "#f8f9fa", fontWeight: "600", padding: "16px" }}
+									></Column>
+
+									<Column
+										field="apartmentName"
+										header="Apartment"
+										body={apartmentTemplate}
+										style={{ width: "25%", padding: "16px" }}
+										headerStyle={{ backgroundColor: "#f8f9fa", fontWeight: "600", padding: "16px" }}
+									></Column>
+
+									<Column
+										field="agentId.firstName"
+										header="Agent"
+										body={agentTemplate}
+										style={{ width: "15%", padding: "16px" }}
+										headerStyle={{ backgroundColor: "#f8f9fa", fontWeight: "600", padding: "16px" }}
+									></Column>
+
+									<Column
+										field="checkInDate"
+										header="Check-in"
+										body={(row) => (
+											<Text fontSize="sm" color="gray.600">
+												{row.checkInDate ? formatDate(row.checkInDate) : 'N/A'}
+											</Text>
+										)}
+										style={{ width: "10%", padding: "16px" }}
+										headerStyle={{ backgroundColor: "#f8f9fa", fontWeight: "600", padding: "16px" }}
+									></Column>
+
+									<Column
+										field="checkOutDate"
+										header="Check-out"
+										body={(row) => (
+											<Text fontSize="sm" color="gray.600">
+												{row.checkOutDate ? formatDate(row.checkOutDate) : 'N/A'}
+											</Text>
+										)}
+										style={{ width: "10%", padding: "16px" }}
+										headerStyle={{ backgroundColor: "#f8f9fa", fontWeight: "600", padding: "16px" }}
+									></Column>
+
+									<Column
+										field="reservationType"
+										header="Type"
+										body={typeTemplate}
+										style={{ width: "8%", padding: "16px" }}
+										headerStyle={{ backgroundColor: "#f8f9fa", fontWeight: "600", padding: "16px" }}
+									></Column>
+
+									<Column
+										field="status"
+										header="Status"
+										body={statusTemplate}
+										style={{ width: "10%", padding: "16px" }}
+										headerStyle={{ backgroundColor: "#f8f9fa", fontWeight: "600", padding: "16px" }}
+									></Column>
+								</DataTable>
+							</Box>
+						</CardBody>
+					</Card>
+				</Fragment>
+			)}
+		</Flex>
 	);
 };
 

@@ -326,7 +326,7 @@ const Index = () => {
 				};
 			}
 
-			await axios.post(endpoint, requestBody, {
+			await axios.patch(endpoint, requestBody, {
 				headers: {
 					"Content-Type": "application/json",
 					Authorization: `Bearer ${authToken}`,
@@ -1003,119 +1003,108 @@ const Index = () => {
 									scrollable
 									scrollHeight="600px"
 									globalFilterFields={['apartmentName', 'agentName', 'agentEmail', 'apartmentAddress']}
-								emptyMessage={
-									<Box textAlign="center" py={8}>
-										<VStack spacing={4}>
-											<Icon as={FaClock} size="3xl" color="gray.400" />
-											<Text fontSize="lg" fontWeight="semibold" color="gray.600">
-												No Resubmitted Apartments
-											</Text>
-											<Text fontSize="sm" color="gray.500" maxW="400px" textAlign="center">
-												There are currently no apartments that have been resubmitted by agents for review.
-											</Text>
-											<Box bg="blue.50" p={4} borderRadius="md" maxW="500px">
-												<Text fontSize="xs" color="blue.700" fontWeight="semibold" mb={2}>
-													How apartments get here:
+									emptyMessage={
+										<Box textAlign="center" py={8}>
+											<VStack spacing={4}>
+												<Icon as={FaClock} size="3xl" color="gray.400" />
+												<Text fontSize="lg" fontWeight="semibold" color="gray.600">
+													No Resubmitted Apartments
 												</Text>
-												<VStack align="start" spacing={1} fontSize="xs" color="blue.600">
-													<Text>1. Agent submits apartment → appears in "Pending Apartments"</Text>
-													<Text>2. Admin rejects apartment with feedback</Text>
-													<Text>3. Agent modifies apartment and clicks "Send for Review"</Text>
-													<Text>4. Apartment appears here for re-review</Text>
-												</VStack>
-											</Box>
-											<Button
-												size="sm"
-												colorScheme="blue"
-												variant="ghost"
-												leftIcon={<Icon as={FaRedo} />}
-												onClick={() => fetchResubmittedApartments()}
+												<Text fontSize="sm" color="gray.500" maxW="400px" textAlign="center">
+													There are currently no apartments that have been resubmitted by agents for review.
+												</Text>
+												<Button
+													size="sm"
+													colorScheme="blue"
+													variant="ghost"
+													leftIcon={<Icon as={FaRedo} />}
+													onClick={() => fetchResubmittedApartments()}
+												>
+													Check Again
+												</Button>
+											</VStack>
+										</Box>
+									}
+								>
+									<Column
+										field="sn"
+										header="S/N"
+										style={{ width: "5%", padding: "16px" }}
+										headerStyle={{ backgroundColor: "#f8f9fa", fontWeight: "600", padding: "16px" }}
+									/>
+
+									<Column
+										field="apartmentName"
+										header="Apartment"
+										body={apartmentNameTemplate}
+										sortable
+										filter
+										filterPlaceholder="Search by name"
+										style={{ width: "25%", padding: "16px" }}
+										headerStyle={{ backgroundColor: "#f8f9fa", fontWeight: "600", padding: "16px" }}
+									/>
+
+									<Column
+										field="agentName"
+										header="Agent"
+										body={agentTemplate}
+										sortable
+										filter
+										filterPlaceholder="Search by agent"
+										style={{ width: "20%", padding: "16px" }}
+										headerStyle={{ backgroundColor: "#f8f9fa", fontWeight: "600", padding: "16px" }}
+									/>
+									<Column
+										field="pushCount"
+										header="Push Count"
+										body={pushCountTemplate}
+										sortable
+										style={{ width: "10%", padding: "16px" }}
+										headerStyle={{ backgroundColor: "#f8f9fa", fontWeight: "600", padding: "16px" }}
+									/>
+									<Column
+										field="modificationsAfterRejection"
+										header="Modifications"
+										body={(row) => (
+											<Badge
+												colorScheme={row.modificationsAfterRejection ? "green" : "gray"}
+												variant="subtle"
+												borderRadius="full"
+												px={3}
+												py={1}
+												fontSize="xs"
 											>
-												Check Again
-											</Button>
-										</VStack>
-									</Box>
-								}
-							>
-								<Column
-									field="sn"
-									header="S/N"
-									style={{ width: "5%", padding: "16px" }}
-									headerStyle={{ backgroundColor: "#f8f9fa", fontWeight: "600", padding: "16px" }}
-								/>
-
-								<Column
-									field="apartmentName"
-									header="Apartment"
-									body={apartmentNameTemplate}
-									sortable
-									filter
-									filterPlaceholder="Search by name"
-									style={{ width: "25%", padding: "16px" }}
-									headerStyle={{ backgroundColor: "#f8f9fa", fontWeight: "600", padding: "16px" }}
-								/>
-
-								<Column
-									field="agentName"
-									header="Agent"
-									body={agentTemplate}
-									sortable
-									filter
-									filterPlaceholder="Search by agent"
-									style={{ width: "20%", padding: "16px" }}
-									headerStyle={{ backgroundColor: "#f8f9fa", fontWeight: "600", padding: "16px" }}
-								/>
-								<Column
-									field="pushCount"
-									header="Push Count"
-									body={pushCountTemplate}
-									sortable
-									style={{ width: "10%", padding: "16px" }}
-									headerStyle={{ backgroundColor: "#f8f9fa", fontWeight: "600", padding: "16px" }}
-								/>
-								<Column
-									field="modificationsAfterRejection"
-									header="Modifications"
-									body={(row) => (
-										<Badge
-											colorScheme={row.modificationsAfterRejection ? "green" : "gray"}
-											variant="subtle"
-											borderRadius="full"
-											px={3}
-											py={1}
-											fontSize="xs"
-										>
-											{row.modificationsAfterRejection ? "Modified" : "No Changes"}
-										</Badge>
-									)}
-									style={{ width: "15%", padding: "16px" }}
-									headerStyle={{ backgroundColor: "#f8f9fa", fontWeight: "600", padding: "16px" }}
-								/>
-								<Column
-									field="lastPushedAt"
-									header="Last Submitted"
-									body={(row) => (
-										<Text fontSize="sm" color="gray.600">
-											{row.lastPushedAt ? formatDate(row.lastPushedAt) : "N/A"}
-										</Text>
-									)}
-									sortable
-									style={{ width: "15%", padding: "16px" }}
-									headerStyle={{ backgroundColor: "#f8f9fa", fontWeight: "600", padding: "16px" }}
-								/>
-								<Column
-									field="status"
-									header="Status"
-									body={statusTemplate}
-									style={{ width: "10%", padding: "16px" }}
-									headerStyle={{ backgroundColor: "#f8f9fa", fontWeight: "600", padding: "16px" }}
-								/>
-								<Column
-									header="Actions"
-									body={actionTemplate}
-									style={{ width: "10%", padding: "16px" }}
-									headerStyle={{ backgroundColor: "#f8f9fa", fontWeight: "600", padding: "16px" }}
-								/>
+												{row.modificationsAfterRejection ? "Modified" : "No Changes"}
+											</Badge>
+										)}
+										style={{ width: "15%", padding: "16px" }}
+										headerStyle={{ backgroundColor: "#f8f9fa", fontWeight: "600", padding: "16px" }}
+									/>
+									<Column
+										field="lastPushedAt"
+										header="Last Submitted"
+										body={(row) => (
+											<Text fontSize="sm" color="gray.600">
+												{row.lastPushedAt ? formatDate(row.lastPushedAt) : "N/A"}
+											</Text>
+										)}
+										sortable
+										style={{ width: "15%", padding: "16px" }}
+										headerStyle={{ backgroundColor: "#f8f9fa", fontWeight: "600", padding: "16px" }}
+									/>
+									<Column
+										field="status"
+										header="Status"
+										body={statusTemplate}
+										style={{ width: "10%", padding: "16px" }}
+										headerStyle={{ backgroundColor: "#f8f9fa", fontWeight: "600", padding: "16px" }}
+									/>
+									<Column
+										header="Actions"
+										body={actionTemplate}
+										style={{ width: "10%", padding: "16px" }}
+										headerStyle={{ backgroundColor: "#f8f9fa", fontWeight: "600", padding: "16px" }}
+									/>
 								</DataTable>
 							</Box>
 						</CardBody>
@@ -1138,8 +1127,8 @@ const Index = () => {
 										<Badge
 											colorScheme={
 												selectedApartment.status === "approved" ? "green" :
-												selectedApartment.status === "rejected" ? "red" :
-												selectedApartment.status === "under_review" ? "yellow" : "gray"
+													selectedApartment.status === "rejected" ? "red" :
+														selectedApartment.status === "under_review" ? "yellow" : "gray"
 											}
 											fontSize="sm"
 										>
@@ -1495,7 +1484,7 @@ const Index = () => {
 													</Text>
 													<SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
 														{newVideos.map((videoObj, index) => (
-															<AspectRatio key={index} ratio={16/9}>
+															<AspectRatio key={index} ratio={16 / 9}>
 																<Box position="relative">
 																	<video
 																		src={videoObj.preview}
@@ -1573,7 +1562,7 @@ const Index = () => {
 														{(isEditMode ? editedApartment?.media?.videos : selectedApartment.media.videos)?.map((video, videoIndex) => {
 															const mediaIndex = (selectedApartment.media?.images?.length || 0) + videoIndex;
 															return (
-																<AspectRatio key={videoIndex} ratio={16/9} position="relative">
+																<AspectRatio key={videoIndex} ratio={16 / 9} position="relative">
 																	<Box position="relative">
 																		<Box
 																			borderRadius="md"

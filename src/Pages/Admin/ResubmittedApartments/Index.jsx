@@ -197,7 +197,7 @@ const Index = () => {
 				throw new Error(response.data.message || "API returned unsuccessful response");
 			} else if (response.status === 200 && (!response.data?.data?.apartments || response.data.data.apartments.length === 0)) {
 				// Handle case where API returns 200 but no apartments
-				console.log('No resubmitted apartments found');
+				console.log('No Resubmitted Apartments found');
 				setApartments([]);
 				toast({
 					title: "No Resubmitted Apartments",
@@ -285,7 +285,7 @@ const Index = () => {
 
 				setSelectedApartment(apartmentDetails);
 				onOpen();
-				console.log("Resubmitted apartment details fetched successfully:", apartmentDetails);
+				console.log("Resubmitted Apartment details fetched successfully:", apartmentDetails);
 			} else {
 				throw new Error("Failed to fetch apartment details");
 			}

@@ -98,6 +98,7 @@ const Index = () => {
 					agentEmail: apt.agentId?.email || "N/A",
 					agentPhone: apt.agentId?.phone ? `+${apt.agentId.phone}` : "N/A",
 					status: apt.status,
+					submittedAt: apt.createdAt || apt.submittedAt || apt.updatedAt,
 				}));
 				setApartments(mapped);
 			} else {
@@ -295,6 +296,33 @@ const Index = () => {
 								<Column field="agentName" header="Agent Name" sortable filter />
 								<Column field="agentEmail" header="Agent Email" sortable filter />
 								<Column field="agentPhone" header="Phone No." sortable filter />
+								<Column
+									field="submittedAt"
+									header="Submitted Date & Time"
+									body={(row) => (
+										<VStack align="start" spacing={0}>
+											<Text fontSize="sm" color="gray.700" fontWeight="medium">
+												{row.submittedAt ? new Date(row.submittedAt).toLocaleDateString('en-US', { 
+													year: 'numeric', 
+													month: 'short', 
+													day: 'numeric' 
+												}) : "N/A"}
+											</Text>
+											{row.submittedAt && (
+												<Text fontSize="xs" color="gray.500">
+													{new Date(row.submittedAt).toLocaleTimeString('en-US', { 
+														hour: '2-digit', 
+														minute: '2-digit',
+														hour12: true 
+													})}
+												</Text>
+											)}
+										</VStack>
+									)}
+									sortable
+									style={{ width: "12%", padding: "16px" }}
+									headerStyle={{ backgroundColor: "#f8f9fa", fontWeight: "600", padding: "16px" }}
+								/>
 								<Column
 									field="status"
 									header="Status"

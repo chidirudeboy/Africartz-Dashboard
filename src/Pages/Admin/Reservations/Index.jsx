@@ -469,6 +469,34 @@ const ReservationsIndex = () => {
 										style={{ width: "10%", padding: "16px" }}
 										headerStyle={{ backgroundColor: "#f8f9fa", fontWeight: "600", padding: "16px" }}
 									></Column>
+
+									<Column
+										field="createdAt"
+										header="Created Date & Time"
+										body={(row) => (
+											<VStack align="start" spacing={0}>
+												<Text fontSize="sm" color="gray.700" fontWeight="medium">
+													{row.createdAt ? new Date(row.createdAt).toLocaleDateString('en-US', {
+														year: 'numeric',
+														month: 'short',
+														day: 'numeric'
+													}) : "N/A"}
+												</Text>
+												{row.createdAt && (
+													<Text fontSize="xs" color="gray.500">
+														{new Date(row.createdAt).toLocaleTimeString('en-US', {
+															hour: '2-digit',
+															minute: '2-digit',
+															hour12: true
+														})}
+													</Text>
+												)}
+											</VStack>
+										)}
+										sortable
+										style={{ width: "12%", padding: "16px" }}
+										headerStyle={{ backgroundColor: "#f8f9fa", fontWeight: "600", padding: "16px" }}
+									></Column>
 								</DataTable>
 							</Box>
 						</CardBody>

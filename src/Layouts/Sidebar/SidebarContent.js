@@ -7,7 +7,7 @@ import {
   FaUserTag,
   FaUsers,
 } from "react-icons/fa6";
-import { MdAdminPanelSettings, MdApartment, MdRateReview } from "react-icons/md";
+import { MdAdminPanelSettings, MdApartment, MdRateReview, MdStorefront } from "react-icons/md";
 import { IoStatsChart } from "react-icons/io5";
 import { RiReservedFill } from "react-icons/ri";
 import { TbLayoutDashboardFilled } from "react-icons/tb";
@@ -102,6 +102,12 @@ const SidebarContent = ({ logoText, isCollapsed }) => {
               isCollapsed={isCollapsed}
             />
             <SideBarLink
+              text="Removed Apartments"
+              icon={<Icon as={FaUser} w={5} h={5} />}
+              route="/admin/removed-apartments"
+              isCollapsed={isCollapsed}
+            />
+            <SideBarLink
               text="Review Resubmitted"
               icon={<Icon as={MdRateReview} w={5} h={5} />}
               route="/admin/review-resubmitted"
@@ -129,6 +135,12 @@ const SidebarContent = ({ logoText, isCollapsed }) => {
               text="Statistics"
               icon={<Icon as={IoStatsChart} w={5} h={5} />}
               route="/admin/statistics"
+              isCollapsed={isCollapsed}
+            />
+            <SideBarLink
+              text="Shop"
+              icon={<Icon as={MdStorefront} w={5} h={5} />}
+              route="/admin/shop"
               isCollapsed={isCollapsed}
             />
           </Fragment>

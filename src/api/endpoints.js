@@ -100,6 +100,25 @@ export const NOTIFICATION_ENDPOINTS = {
   unsubscribe: endpoint("/admin/notifications/unsubscribe")
 };
 
+// Shop Endpoints
+export const SHOP_ENDPOINTS = {
+  products: {
+    list: endpoint("/admin/shop/products"),
+    create: endpoint("/admin/shop/products"),
+    getById: withId("/admin/shop/products"),
+    update: withId("/admin/shop/products"),
+    delete: withId("/admin/shop/products"),
+  },
+  requests: {
+    list: endpoint("/admin/shop/requests"),
+    getById: withId("/admin/shop/requests"),
+    approve: (requestId) => endpoint(`/admin/shop/requests/${requestId}/approve`),
+    reject: (requestId) => endpoint(`/admin/shop/requests/${requestId}/reject`),
+    fulfill: (requestId) => endpoint(`/admin/shop/requests/${requestId}/fulfill`),
+    pendingCount: endpoint("/admin/shop/requests/pending/count"),
+  },
+};
+
 // Legacy support (to be removed after migration)
 export const LEGACY_ENDPOINTS = {
   // Keep old exports for backward compatibility during transition

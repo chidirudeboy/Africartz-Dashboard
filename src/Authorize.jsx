@@ -18,6 +18,7 @@ import Reservations from "./Pages/Admin/Reservations/Index";
 import Agent from "./Pages/Admin/Agents/Index";
 import Statistics from "./Pages/Admin/Statistics/Index";
 import ShopAdmin from "./Pages/Admin/Shop/Index";
+import Catalogue from "./Pages/Admin/Catalogue/Index";
 
 const Authorize = () => {
 	const { isLoggedIn, isLoading } = useContext(GlobalContext);
@@ -38,6 +39,7 @@ const Authorize = () => {
 						<Route path="/admin/users" element={<Users />} />
 						<Route path="/admin/apartments" element={<Apartments />} />
 						<Route path="/admin/approved-apartments" element={<ApprovedApartments />} />
+						<Route path="/admin/catalogue" element={<Catalogue />} />
 						<Route path="/admin/removed-apartments" element={<RemovedApartments />} />
 						<Route path="/admin/review-resubmitted" element={<ResubmittedApartments />} />
 						<Route path="/admin/bookings" element={<Bookings />} />

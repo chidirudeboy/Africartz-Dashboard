@@ -17,6 +17,7 @@ export const AdminGetStatsAPI = endpoint("/admin/stats");
 export const AdminGetPendingApartmentsAPI = endpoint("/apartment/pending-apartments");
 export const AdminGetPendingApartmentByIdAPI = (APARTMENT_ID) => endpoint(`/apartment/pending-apartments/${APARTMENT_ID}`);
 export const AdminGetApprovedApartmentsAPI = endpoint("/admin/apartments/approved");
+export const AdminGetCatalogueAPI = endpoint("/admin/apartments/catalogue");
 export const AdminGetApprovedApartmentByIdAPI = (APARTMENT_ID) => endpoint(`/admin/apartments/approved/${APARTMENT_ID}`);
 export const AdminGetRemovedApartmentsAPI = endpoint("/admin/apartments/removed");
 export const AdminRemoveApartmentAPI = (APARTMENT_ID) => endpoint(`/admin/${APARTMENT_ID}/remove`);

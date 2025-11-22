@@ -102,6 +102,12 @@ const SidebarContent = ({ logoText, isCollapsed }) => {
               isCollapsed={isCollapsed}
             />
             <SideBarLink
+              text="Catalogue"
+              icon={<Icon as={FaBookOpen} w={5} h={5} />}
+              route="/admin/catalogue"
+              isCollapsed={isCollapsed}
+            />
+            <SideBarLink
               text="Removed Apartments"
               icon={<Icon as={FaUser} w={5} h={5} />}
               route="/admin/removed-apartments"

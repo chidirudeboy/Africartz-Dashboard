@@ -48,10 +48,16 @@ import {
 	NumberDecrementStepper,
 	IconButton,
 	Checkbox,
-	CheckboxGroup
+	CheckboxGroup,
+	AlertDialog,
+	AlertDialogBody,
+	AlertDialogFooter,
+	AlertDialogHeader,
+	AlertDialogContent,
+	AlertDialogOverlay
 } from "@chakra-ui/react";
-import { FaWifi, FaPhoneAlt, FaWhatsapp, FaMapMarkerAlt, FaBed, FaBath, FaUsers, FaChevronLeft, FaChevronRight, FaTimes, FaEdit, FaTrash, FaUpload, FaCheck, FaStar, FaRegStar } from "react-icons/fa";
-import { useState, useEffect, Fragment } from "react";
+import { FaWifi, FaPhoneAlt, FaWhatsapp, FaMapMarkerAlt, FaBed, FaBath, FaUsers, FaChevronLeft, FaChevronRight, FaTimes, FaEdit, FaTrash, FaUpload, FaCheck, FaStar, FaRegStar, FaPlus } from "react-icons/fa";
+import { useState, useEffect, Fragment, useRef } from "react";
 import { Column } from "primereact/column";
 import { DataTable } from "primereact/datatable";
 import Card from "../../../components/Card/Card.js";
@@ -87,10 +93,20 @@ const ApprovedApartments = () => {
 	const { isOpen, onOpen, onClose } = useDisclosure();
 	const { isOpen: isMediaViewerOpen, onOpen: onMediaViewerOpen, onClose: onMediaViewerClose } = useDisclosure();
 	const { isOpen: isRemoveDialogOpen, onOpen: onRemoveDialogOpen, onClose: onRemoveDialogClose } = useDisclosure();
+	const cancelRef = useRef();
 	const [removingApartmentId, setRemovingApartmentId] = useState(null);
 	const [apartmentToRemove, setApartmentToRemove] = useState(null);
 	const [removeReason, setRemoveReason] = useState("");
 	const toast = useToast();
+	const [isDiscountModalOpen, setDiscountModalOpen] = useState(false);
+	const [discountFormData, setDiscountFormData] = useState({ minNights: "", discountPercent: "", isActive: true });
+	const [editingDiscountIndex, setEditingDiscountIndex] = useState(null);
+	const [isSeasonalModalOpen, setSeasonalModalOpen] = useState(false);
+	const [seasonalFormData, setSeasonalFormData] = useState({ name: "", additionalFee: "", startDate: "", endDate: "", isActive: true });
+	const [editingSeasonalIndex, setEditingSeasonalIndex] = useState(null);
+	const [isBedroomModalOpen, setBedroomModalOpen] = useState(false);
+	const [bedroomFormData, setBedroomFormData] = useState({ bedrooms: "", price: "", isActive: true });
+	const [editingBedroomIndex, setEditingBedroomIndex] = useState(null);
 
 	const fetchApprovedApartments = async () => {
 		setLoading(true);
@@ -222,6 +238,400 @@ const ApprovedApartments = () => {
 		setDeletedImages([]);
 		setDeletedVideos([]);
 		setFavoriteImageIndex(null);
+		closeDiscountModal();
+		closeSeasonalModal();
+		closeBedroomModal();
+	};
+
+	const resetDiscountForm = () => {
+		setDiscountFormData({ minNights: "", discountPercent: "", isActive: true });
+		setEditingDiscountIndex(null);
+	};
+
+	const resetSeasonalForm = () => {
+		setSeasonalFormData({ name: "", additionalFee: "", startDate: "", endDate: "", isActive: true });
+		setEditingSeasonalIndex(null);
+	};
+
+	const resetBedroomForm = () => {
+		setBedroomFormData({ bedrooms: "", price: "", isActive: true });
+		setEditingBedroomIndex(null);
+	};
+
+	const formatDateForInput = (value) => {
+		if (!value) return "";
+		const date = new Date(value);
+		if (Number.isNaN(date.getTime())) return "";
+		return date.toISOString().split("T")[0];
+	};
+	const formatDateLabel = (value) => {
+		if (!value) return "N/A";
+		const date = new Date(value);
+		return Number.isNaN(date.getTime()) ? "N/A" : date.toLocaleDateString();
+	};
+
+	const openDiscountModal = (discount = null, index = null) => {
+		if (!isEditMode || !editedApartment) return;
+		setEditingDiscountIndex(typeof index === "number" ? index : null);
+		setDiscountFormData({
+			minNights: discount?.minNights?.toString() || "",
+			discountPercent: discount?.discountPercent?.toString() || "",
+			isActive: discount?.isActive ?? true,
+		});
+		setDiscountModalOpen(true);
+	};
+
+	const handleDiscountSave = () => {
+		if (!editedApartment) return;
+		const { minNights, discountPercent } = discountFormData;
+		if (!minNights || !discountPercent) {
+			toast({
+				title: "Validation Error",
+				description: "Please provide both minimum nights and discount percent.",
+				status: "warning",
+				duration: 3000,
+				isClosable: true,
+			});
+			return;
+		}
+
+		const parsedMinNights = parseInt(minNights, 10);
+		const parsedDiscountPercent = parseFloat(discountPercent);
+
+		if (parsedMinNights < 1) {
+			toast({
+				title: "Validation Error",
+				description: "Minimum nights must be at least 1.",
+				status: "warning",
+				duration: 3000,
+				isClosable: true,
+			});
+			return;
+		}
+
+		if (parsedDiscountPercent < 0 || parsedDiscountPercent > 100) {
+			toast({
+				title: "Validation Error",
+				description: "Discount must fall between 0% and 100%.",
+				status: "warning",
+				duration: 3000,
+				isClosable: true,
+			});
+			return;
+		}
+
+		const nextDiscounts = [...(editedApartment.discounts || [])];
+		const isEditing = editingDiscountIndex !== null;
+
+		if (isEditing && editingDiscountIndex >= 0 && editingDiscountIndex < nextDiscounts.length) {
+			const duplicate = nextDiscounts.some(
+				(d, idx) => idx !== editingDiscountIndex && d.minNights === parsedMinNights
+			);
+			if (duplicate) {
+				toast({
+					title: "Duplicate Configuration",
+					description: "A discount with that minimum nights already exists.",
+					status: "warning",
+					duration: 3000,
+					isClosable: true,
+				});
+				return;
+			}
+
+			nextDiscounts[editingDiscountIndex] = {
+				...nextDiscounts[editingDiscountIndex],
+				minNights: parsedMinNights,
+				discountPercent: parsedDiscountPercent,
+				isActive: discountFormData.isActive,
+				updatedAt: new Date().toISOString(),
+			};
+		} else {
+			const duplicate = nextDiscounts.some((d) => d.minNights === parsedMinNights);
+			if (duplicate) {
+				toast({
+					title: "Duplicate Configuration",
+					description: "A discount with that minimum nights already exists.",
+					status: "warning",
+					duration: 3000,
+					isClosable: true,
+				});
+				return;
+			}
+
+			nextDiscounts.push({
+				minNights: parsedMinNights,
+				discountPercent: parsedDiscountPercent,
+				isActive: discountFormData.isActive,
+				createdAt: new Date().toISOString(),
+				updatedAt: new Date().toISOString(),
+			});
+		}
+
+		setEditedApartment((prev) => ({
+			...prev,
+			discounts: nextDiscounts,
+		}));
+
+		toast({
+			title: "Success",
+			description: "Multi-night discount saved.",
+			status: "success",
+			duration: 3000,
+			isClosable: true,
+		});
+
+		setDiscountModalOpen(false);
+		resetDiscountForm();
+	};
+
+	const handleDeleteDiscount = (index) => {
+		if (!editedApartment) return;
+		const nextDiscounts = [...(editedApartment.discounts || [])];
+		nextDiscounts.splice(index, 1);
+		setEditedApartment((prev) => ({
+			...prev,
+			discounts: nextDiscounts,
+		}));
+	};
+
+	const closeDiscountModal = () => {
+		setDiscountModalOpen(false);
+		resetDiscountForm();
+	};
+
+	const openSeasonalModal = (pricing = null, index = null) => {
+		if (!isEditMode || !editedApartment) return;
+		setEditingSeasonalIndex(typeof index === "number" ? index : null);
+		setSeasonalFormData({
+			name: pricing?.name || "",
+			additionalFee: pricing?.additionalFee?.toString() || "",
+			startDate: formatDateForInput(pricing?.startDate),
+			endDate: formatDateForInput(pricing?.endDate),
+			isActive: pricing?.isActive ?? true,
+		});
+		setSeasonalModalOpen(true);
+	};
+
+	const handleSeasonalSave = () => {
+		if (!editedApartment) return;
+		const { name, additionalFee, startDate, endDate } = seasonalFormData;
+
+		if (!name || !additionalFee || !startDate || !endDate) {
+			toast({
+				title: "Validation Error",
+				description: "All fields are required.",
+				status: "warning",
+				duration: 3000,
+				isClosable: true,
+			});
+			return;
+		}
+
+		const parsedFee = parseFloat(additionalFee);
+		if (parsedFee < 0) {
+			toast({
+				title: "Validation Error",
+				description: "Additional fee must be zero or greater.",
+				status: "warning",
+				duration: 3000,
+				isClosable: true,
+			});
+			return;
+		}
+
+		const start = new Date(startDate);
+		const end = new Date(endDate);
+
+		if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
+			toast({
+				title: "Validation Error",
+				description: "Invalid dates supplied.",
+				status: "warning",
+				duration: 3000,
+				isClosable: true,
+			});
+			return;
+		}
+
+		if (end <= start) {
+			toast({
+				title: "Validation Error",
+				description: "End date must be after start date.",
+				status: "warning",
+				duration: 3000,
+				isClosable: true,
+			});
+			return;
+		}
+
+		const nextSeasonal = [...(editedApartment.seasonalPricing || [])];
+		const seasonPayload = {
+			name: name.trim(),
+			additionalFee: parsedFee,
+			startDate: start.toISOString(),
+			endDate: end.toISOString(),
+			isActive: seasonalFormData.isActive,
+			updatedAt: new Date().toISOString(),
+		};
+
+		if (editingSeasonalIndex !== null && editingSeasonalIndex >= 0 && editingSeasonalIndex < nextSeasonal.length) {
+			nextSeasonal[editingSeasonalIndex] = {
+				...(nextSeasonal[editingSeasonalIndex] || {}),
+				...seasonPayload,
+			};
+		} else {
+			nextSeasonal.push({
+				...seasonPayload,
+				createdAt: new Date().toISOString(),
+			});
+		}
+
+		setEditedApartment((prev) => ({
+			...prev,
+			seasonalPricing: nextSeasonal,
+		}));
+
+		toast({
+			title: "Success",
+			description: "Seasonal pricing saved.",
+			status: "success",
+			duration: 3000,
+			isClosable: true,
+		});
+
+		setSeasonalModalOpen(false);
+		resetSeasonalForm();
+	};
+
+	const handleDeleteSeasonal = (index) => {
+		if (!editedApartment) return;
+		const nextSeasonal = [...(editedApartment.seasonalPricing || [])];
+		nextSeasonal.splice(index, 1);
+		setEditedApartment((prev) => ({
+			...prev,
+			seasonalPricing: nextSeasonal,
+		}));
+	};
+
+	const closeSeasonalModal = () => {
+		setSeasonalModalOpen(false);
+		resetSeasonalForm();
+	};
+
+	const openBedroomModal = (pricing = null, index = null) => {
+		if (!isEditMode || !editedApartment) return;
+		setEditingBedroomIndex(typeof index === "number" ? index : null);
+		setBedroomFormData({
+			bedrooms: pricing?.bedrooms?.toString() || "",
+			price: pricing?.price?.toString() || "",
+			isActive: pricing?.isActive ?? true,
+		});
+		setBedroomModalOpen(true);
+	};
+
+	const handleBedroomSave = () => {
+		if (!editedApartment) return;
+		const { bedrooms, price } = bedroomFormData;
+		if (!bedrooms || !price) {
+			toast({
+				title: "Validation Error",
+				description: "Bedrooms and price are required.",
+				status: "warning",
+				duration: 3000,
+				isClosable: true,
+			});
+			return;
+		}
+
+		const parsedBedrooms = parseInt(bedrooms, 10);
+		const parsedPrice = parseFloat(price);
+
+		if (parsedBedrooms < 1) {
+			toast({
+				title: "Validation Error",
+				description: "Bedrooms must be at least 1.",
+				status: "warning",
+				duration: 3000,
+				isClosable: true,
+			});
+			return;
+		}
+
+		if (parsedPrice < 0) {
+			toast({
+				title: "Validation Error",
+				description: "Price cannot be negative.",
+				status: "warning",
+				duration: 3000,
+				isClosable: true,
+			});
+			return;
+		}
+
+		const nextBedrooms = [...(editedApartment.bedroomPricing || [])];
+		const duplicate = nextBedrooms.some(
+			(current, idx) =>
+				current.bedrooms === parsedBedrooms && idx !== editingBedroomIndex
+		);
+		if (duplicate) {
+			toast({
+				title: "Duplicate Configuration",
+				description: "A configuration for that bedroom count already exists.",
+				status: "warning",
+				duration: 3000,
+				isClosable: true,
+			});
+			return;
+		}
+
+		if (editingBedroomIndex !== null && editingBedroomIndex >= 0 && editingBedroomIndex < nextBedrooms.length) {
+			nextBedrooms[editingBedroomIndex] = {
+				...(nextBedrooms[editingBedroomIndex] || {}),
+				bedrooms: parsedBedrooms,
+				price: parsedPrice,
+				isActive: bedroomFormData.isActive,
+				updatedAt: new Date().toISOString(),
+			};
+		} else {
+			nextBedrooms.push({
+				bedrooms: parsedBedrooms,
+				price: parsedPrice,
+				isActive: bedroomFormData.isActive,
+				createdAt: new Date().toISOString(),
+				updatedAt: new Date().toISOString(),
+			});
+		}
+
+		setEditedApartment((prev) => ({
+			...prev,
+			bedroomPricing: nextBedrooms,
+		}));
+
+		toast({
+			title: "Success",
+			description: "Bedroom pricing saved.",
+			status: "success",
+			duration: 3000,
+			isClosable: true,
+		});
+
+		setBedroomModalOpen(false);
+		resetBedroomForm();
+	};
+
+	const handleDeleteBedroom = (index) => {
+		if (!editedApartment) return;
+		const nextBedrooms = [...(editedApartment.bedroomPricing || [])];
+		nextBedrooms.splice(index, 1);
+		setEditedApartment((prev) => ({
+			...prev,
+			bedroomPricing: nextBedrooms,
+		}));
+	};
+
+	const closeBedroomModal = () => {
+		setBedroomModalOpen(false);
+		resetBedroomForm();
 	};
 
 	const handleModalClose = () => {
@@ -232,6 +642,9 @@ const ApprovedApartments = () => {
 		setDeletedImages([]);
 		setDeletedVideos([]);
 		setFavoriteImageIndex(null);
+		closeDiscountModal();
+		closeSeasonalModal();
+		closeBedroomModal();
 		onClose();
 	};
 
@@ -481,6 +894,15 @@ const ApprovedApartments = () => {
 			}
 			if (JSON.stringify(editedApartment.amenities || []) !== JSON.stringify(selectedApartment.amenities || [])) {
 				updatePayload.amenities = editedApartment.amenities;
+			}
+			if (JSON.stringify(editedApartment.discounts || []) !== JSON.stringify(selectedApartment.discounts || [])) {
+				updatePayload.discounts = editedApartment.discounts;
+			}
+			if (JSON.stringify(editedApartment.seasonalPricing || []) !== JSON.stringify(selectedApartment.seasonalPricing || [])) {
+				updatePayload.seasonalPricing = editedApartment.seasonalPricing;
+			}
+			if (JSON.stringify(editedApartment.bedroomPricing || []) !== JSON.stringify(selectedApartment.bedroomPricing || [])) {
+				updatePayload.bedroomPricing = editedApartment.bedroomPricing;
 			}
 
 			// Handle deleted media - backend expects mediaToRemove array
@@ -746,6 +1168,10 @@ const ApprovedApartments = () => {
 	const totalRevenue = approvedApartments.reduce((sum, apt) => sum + (apt.defaultStayFee || 0), 0);
 	const averagePrice = totalApartments > 0 ? totalRevenue / totalApartments : 0;
 	const uniqueAgents = new Set(approvedApartments.map(apt => apt.agentEmail)).size;
+
+	const currentDiscounts = isEditMode ? editedApartment?.discounts || [] : selectedApartment?.discounts || [];
+	const currentSeasonalPricing = isEditMode ? editedApartment?.seasonalPricing || [] : selectedApartment?.seasonalPricing || [];
+	const currentBedroomPricing = isEditMode ? editedApartment?.bedroomPricing || [] : selectedApartment?.bedroomPricing || [];
 
 	useEffect(() => {
 		fetchApprovedApartments();
@@ -1580,6 +2006,225 @@ const ApprovedApartments = () => {
 												</VStack>
 											</GridItem>
 										</Grid>
+										<Stack spacing={6} mt={6}>
+											<Box p={4} bg="white" borderRadius="md" border="1px solid" borderColor="gray.200">
+												<Flex justify="space-between" align="center" mb={3}>
+													<Text fontSize="lg" fontWeight="bold" color="#de9301">
+														Multi-night Discounts
+													</Text>
+													{isEditMode && (
+														<Button
+															size="sm"
+															leftIcon={<Icon as={FaPlus} />}
+															colorScheme="orange"
+															variant="outline"
+															onClick={() => openDiscountModal()}
+														>
+															Add Discount
+														</Button>
+													)}
+												</Flex>
+												{currentDiscounts.length > 0 ? (
+													<Stack spacing={3}>
+														{currentDiscounts.map((discount, index) => (
+															<Flex
+																key={discount._id || index}
+																justify="space-between"
+																align="center"
+																p={3}
+																borderRadius="md"
+																border="1px solid"
+																borderColor="gray.100"
+																bg="gray.50"
+															>
+																<VStack align="start" spacing={0}>
+																	<Text fontWeight="bold">
+																		{discount.minNights}+ night{discount.minNights > 1 ? "s" : ""}
+																	</Text>
+																	<Text color="gray.600">
+																		{discount.discountPercent}% discount
+																	</Text>
+																</VStack>
+																<HStack spacing={2}>
+																	<Badge colorScheme={discount.isActive ? "green" : "red"}>
+																		{discount.isActive ? "Active" : "Inactive"}
+																	</Badge>
+																	{isEditMode && (
+																		<>
+																			<IconButton
+																				size="sm"
+																				variant="ghost"
+																				colorScheme="orange"
+																				aria-label="Edit discount"
+																				icon={<Icon as={FaEdit} />}
+																				onClick={() => openDiscountModal(discount, index)}
+																			/>
+																			<IconButton
+																				size="sm"
+																				variant="ghost"
+																				colorScheme="red"
+																				aria-label="Delete discount"
+																				icon={<Icon as={FaTrash} />}
+																				onClick={() => handleDeleteDiscount(index)}
+																			/>
+																		</>
+																	)}
+																</HStack>
+															</Flex>
+														))}
+													</Stack>
+												) : (
+													<Text color="gray.500">No multi-night discounts configured yet.</Text>
+												)}
+											</Box>
+
+											<Box p={4} bg="white" borderRadius="md" border="1px solid" borderColor="gray.200">
+												<Flex justify="space-between" align="center" mb={3}>
+													<Text fontSize="lg" fontWeight="bold" color="#de9301">
+														Seasonal Pricing
+													</Text>
+													{isEditMode && (
+														<Button
+															size="sm"
+															leftIcon={<Icon as={FaPlus} />}
+															colorScheme="orange"
+															variant="outline"
+															onClick={() => openSeasonalModal()}
+														>
+															Add Season
+														</Button>
+													)}
+												</Flex>
+												{currentSeasonalPricing.length > 0 ? (
+													<Stack spacing={3}>
+														{currentSeasonalPricing.map((pricing, index) => (
+															<Flex
+																key={pricing._id || index}
+																justify="space-between"
+																align="center"
+																p={3}
+																borderRadius="md"
+																border="1px solid"
+																borderColor="gray.100"
+																bg="gray.50"
+															>
+																<VStack align="start" spacing={0}>
+																	<Text fontWeight="600">{pricing.name}</Text>
+																	<Text color="gray.600">
+																		+₦{(pricing.additionalFee || 0).toLocaleString()} per night
+																	</Text>
+																	<Text fontSize="sm" color="gray.500">
+																		{formatDateLabel(pricing.startDate)} —{" "}
+																		{formatDateLabel(pricing.endDate)}
+																	</Text>
+																</VStack>
+																<HStack spacing={2}>
+																	<Badge colorScheme={pricing.isActive ? "green" : "red"}>
+																		{pricing.isActive ? "Active" : "Inactive"}
+																	</Badge>
+																	{isEditMode && (
+																		<>
+																			<IconButton
+																				size="sm"
+																				variant="ghost"
+																				colorScheme="orange"
+																				aria-label="Edit season"
+																				icon={<Icon as={FaEdit} />}
+																				onClick={() => openSeasonalModal(pricing, index)}
+																			/>
+																			<IconButton
+																				size="sm"
+																				variant="ghost"
+																				colorScheme="red"
+																				aria-label="Delete season"
+																				icon={<Icon as={FaTrash} />}
+																				onClick={() => handleDeleteSeasonal(index)}
+																			/>
+																		</>
+																	)}
+																</HStack>
+															</Flex>
+														))}
+													</Stack>
+												) : (
+													<Text color="gray.500">No seasonal pricing configured yet.</Text>
+												)}
+											</Box>
+
+											<Box p={4} bg="white" borderRadius="md" border="1px solid" borderColor="gray.200">
+												<Flex justify="space-between" align="center" mb={3}>
+													<Text fontSize="lg" fontWeight="bold" color="#de9301">
+														Bedroom Pricing
+													</Text>
+													{isEditMode && (
+														<Button
+															size="sm"
+															leftIcon={<Icon as={FaPlus} />}
+															colorScheme="orange"
+															variant="outline"
+															onClick={() => openBedroomModal()}
+														>
+															Add Configuration
+														</Button>
+													)}
+												</Flex>
+												{currentBedroomPricing.length > 0 ? (
+													<Stack spacing={3}>
+														{currentBedroomPricing
+															.sort((a, b) => a.bedrooms - b.bedrooms)
+															.map((pricing, index) => (
+																<Flex
+																	key={pricing._id || index}
+																	justify="space-between"
+																	align="center"
+																	p={3}
+																	borderRadius="md"
+																	border="1px solid"
+																	borderColor="gray.100"
+																	bg="gray.50"
+																>
+																	<VStack align="start" spacing={0}>
+																		<Text fontWeight="600">
+																			{pricing.bedrooms}{" "}
+																			{pricing.bedrooms === 1 ? "Bedroom" : "Bedrooms"}
+																		</Text>
+																		<Text color="gray.600">
+																			₦{(pricing.price || 0).toLocaleString()} per night
+																		</Text>
+																	</VStack>
+																	<HStack spacing={2}>
+																		<Badge colorScheme={pricing.isActive ? "green" : "red"}>
+																			{pricing.isActive ? "Active" : "Inactive"}
+																		</Badge>
+																		{isEditMode && (
+																			<>
+																				<IconButton
+																					size="sm"
+																					variant="ghost"
+																					colorScheme="orange"
+																					aria-label="Edit bedroom pricing"
+																					icon={<Icon as={FaEdit} />}
+																					onClick={() => openBedroomModal(pricing, index)}
+																				/>
+																				<IconButton
+																					size="sm"
+																					variant="ghost"
+																					colorScheme="red"
+																					aria-label="Delete bedroom pricing"
+																					icon={<Icon as={FaTrash} />}
+																					onClick={() => handleDeleteBedroom(index)}
+																				/>
+																			</>
+																		)}
+																	</HStack>
+																</Flex>
+															))}
+													</Stack>
+												) : (
+													<Text color="gray.500">No bedroom pricing configured yet.</Text>
+												)}
+											</Box>
+										</Stack>
 									</TabPanel>
 
 									{/* Amenities Tab */}
@@ -2035,6 +2680,203 @@ const ApprovedApartments = () => {
 				</ModalContent>
 			</Modal>
 
+			{/* Multi-night Discount Modal */}
+			<Modal isOpen={isDiscountModalOpen} onClose={closeDiscountModal} size="lg">
+				<ModalOverlay />
+				<ModalContent>
+					<ModalHeader>
+						{editingDiscountIndex !== null ? "Edit Multi-night Discount" : "Add Multi-night Discount"}
+					</ModalHeader>
+					<ModalCloseButton />
+					<ModalBody>
+						<Stack spacing={4}>
+							<FormControl>
+								<FormLabel>Minimum Nights</FormLabel>
+								<NumberInput
+									value={discountFormData.minNights}
+									min={1}
+									onChange={(value) =>
+										setDiscountFormData((prev) => ({ ...prev, minNights: value }))
+									}
+								>
+									<NumberInputField />
+								</NumberInput>
+							</FormControl>
+							<FormControl>
+								<FormLabel>Discount Percent</FormLabel>
+								<NumberInput
+									value={discountFormData.discountPercent}
+									min={0}
+									max={100}
+									onChange={(value) =>
+										setDiscountFormData((prev) => ({ ...prev, discountPercent: value }))
+									}
+								>
+									<NumberInputField />
+								</NumberInput>
+							</FormControl>
+							<FormControl display="flex" alignItems="center">
+								<Checkbox
+									isChecked={discountFormData.isActive}
+									onChange={(e) =>
+										setDiscountFormData((prev) => ({ ...prev, isActive: e.target.checked }))
+									}
+								>
+									Active
+								</Checkbox>
+							</FormControl>
+						</Stack>
+					</ModalBody>
+					<ModalFooter>
+						<Button variant="ghost" mr={3} onClick={closeDiscountModal}>
+							Cancel
+						</Button>
+						<Button colorScheme="orange" onClick={handleDiscountSave}>
+							Save
+						</Button>
+					</ModalFooter>
+				</ModalContent>
+			</Modal>
+
+			{/* Seasonal Pricing Modal */}
+			<Modal isOpen={isSeasonalModalOpen} onClose={closeSeasonalModal} size="lg">
+				<ModalOverlay />
+				<ModalContent>
+					<ModalHeader>
+						{editingSeasonalIndex !== null ? "Edit Seasonal Pricing" : "Add Seasonal Pricing"}
+					</ModalHeader>
+					<ModalCloseButton />
+					<ModalBody>
+						<Stack spacing={4}>
+							<FormControl>
+								<FormLabel>Name</FormLabel>
+								<Input
+									value={seasonalFormData.name}
+									onChange={(e) =>
+										setSeasonalFormData((prev) => ({ ...prev, name: e.target.value }))
+									}
+								/>
+							</FormControl>
+							<FormControl>
+								<FormLabel>Additional Fee (₦)</FormLabel>
+								<NumberInput
+									value={seasonalFormData.additionalFee}
+									min={0}
+									onChange={(value) =>
+										setSeasonalFormData((prev) => ({ ...prev, additionalFee: value }))
+									}
+								>
+									<NumberInputField />
+								</NumberInput>
+							</FormControl>
+							<SimpleGrid columns={{ base: 1, md: 2 }} gap={3}>
+								<FormControl>
+									<FormLabel>Start Date</FormLabel>
+									<Input
+										type="date"
+										value={seasonalFormData.startDate}
+										onChange={(e) =>
+											setSeasonalFormData((prev) => ({
+												...prev,
+												startDate: e.target.value,
+											}))
+										}
+									/>
+								</FormControl>
+								<FormControl>
+									<FormLabel>End Date</FormLabel>
+									<Input
+										type="date"
+										value={seasonalFormData.endDate}
+										onChange={(e) =>
+											setSeasonalFormData((prev) => ({
+												...prev,
+												endDate: e.target.value,
+											}))
+										}
+									/>
+								</FormControl>
+							</SimpleGrid>
+							<FormControl display="flex" alignItems="center">
+								<Checkbox
+									isChecked={seasonalFormData.isActive}
+									onChange={(e) =>
+										setSeasonalFormData((prev) => ({ ...prev, isActive: e.target.checked }))
+									}
+								>
+									Active
+								</Checkbox>
+							</FormControl>
+						</Stack>
+					</ModalBody>
+					<ModalFooter>
+						<Button variant="ghost" mr={3} onClick={closeSeasonalModal}>
+							Cancel
+						</Button>
+						<Button colorScheme="orange" onClick={handleSeasonalSave}>
+							Save
+						</Button>
+					</ModalFooter>
+				</ModalContent>
+			</Modal>
+
+			{/* Bedroom Pricing Modal */}
+			<Modal isOpen={isBedroomModalOpen} onClose={closeBedroomModal} size="lg">
+				<ModalOverlay />
+				<ModalContent>
+					<ModalHeader>
+						{editingBedroomIndex !== null ? "Edit Bedroom Pricing" : "Add Bedroom Pricing"}
+					</ModalHeader>
+					<ModalCloseButton />
+					<ModalBody>
+						<Stack spacing={4}>
+							<FormControl>
+								<FormLabel>Bedrooms</FormLabel>
+								<NumberInput
+									value={bedroomFormData.bedrooms}
+									min={1}
+									onChange={(value) =>
+										setBedroomFormData((prev) => ({ ...prev, bedrooms: value }))
+									}
+								>
+									<NumberInputField />
+								</NumberInput>
+							</FormControl>
+							<FormControl>
+								<FormLabel>Price (₦)</FormLabel>
+								<NumberInput
+									value={bedroomFormData.price}
+									min={0}
+									onChange={(value) =>
+										setBedroomFormData((prev) => ({ ...prev, price: value }))
+									}
+								>
+									<NumberInputField />
+								</NumberInput>
+							</FormControl>
+							<FormControl display="flex" alignItems="center">
+								<Checkbox
+									isChecked={bedroomFormData.isActive}
+									onChange={(e) =>
+										setBedroomFormData((prev) => ({ ...prev, isActive: e.target.checked }))
+									}
+								>
+									Active
+								</Checkbox>
+							</FormControl>
+						</Stack>
+					</ModalBody>
+					<ModalFooter>
+						<Button variant="ghost" mr={3} onClick={closeBedroomModal}>
+							Cancel
+						</Button>
+						<Button colorScheme="orange" onClick={handleBedroomSave}>
+							Save
+						</Button>
+					</ModalFooter>
+				</ModalContent>
+			</Modal>
+
 			{/* Media Viewer Modal */}
 			<Modal
 				isOpen={isMediaViewerOpen}
@@ -2169,41 +3011,55 @@ const ApprovedApartments = () => {
 			</Modal>
 
 			{/* Remove Apartment Confirmation Dialog */}
-			<Modal isOpen={isRemoveDialogOpen} onClose={onRemoveDialogClose} isCentered>
-				<ModalOverlay />
-				<ModalContent>
-					<ModalHeader>Remove Apartment</ModalHeader>
-					<ModalCloseButton />
-					<ModalBody>
-						<VStack spacing={4} align="stretch">
-							<Text>
-								Are you sure you want to remove <strong>{apartmentToRemove?.name}</strong> from approved apartments?
-							</Text>
-							<FormControl>
-								<FormLabel>Reason (Optional)</FormLabel>
-								<Textarea
-									value={removeReason}
-									onChange={(e) => setRemoveReason(e.target.value)}
-									placeholder="Enter reason for removal..."
-									rows={3}
-								/>
-							</FormControl>
-						</VStack>
-					</ModalBody>
-					<ModalFooter>
-						<Button variant="ghost" mr={3} onClick={onRemoveDialogClose}>
-							Cancel
-						</Button>
-						<Button
-							colorScheme="red"
-							isLoading={removingApartmentId === apartmentToRemove?.id}
-							onClick={confirmRemoveApartment}
-						>
-							Remove
-						</Button>
-					</ModalFooter>
-				</ModalContent>
-			</Modal>
+			<AlertDialog
+				isOpen={isRemoveDialogOpen}
+				leastDestructiveRef={cancelRef}
+				onClose={onRemoveDialogClose}
+				isCentered
+			>
+				<AlertDialogOverlay>
+					<AlertDialogContent>
+						<AlertDialogHeader fontSize="lg" fontWeight="bold" color="red.600">
+							Remove Apartment from Approved List
+						</AlertDialogHeader>
+
+						<AlertDialogBody>
+							<VStack spacing={4} align="stretch">
+								<Text>
+									Are you sure you want to remove <strong>{apartmentToRemove?.name}</strong> from approved apartments?
+								</Text>
+								<Text fontSize="sm" color="gray.600">
+									This action will change the apartment status to "removed". The apartment will no longer appear in the approved apartments list but can be viewed in the removed apartments section.
+								</Text>
+								<FormControl>
+									<FormLabel>Reason (Optional)</FormLabel>
+									<Textarea
+										value={removeReason}
+										onChange={(e) => setRemoveReason(e.target.value)}
+										placeholder="Enter reason for removal..."
+										rows={3}
+									/>
+								</FormControl>
+							</VStack>
+						</AlertDialogBody>
+
+						<AlertDialogFooter>
+							<Button ref={cancelRef} onClick={onRemoveDialogClose}>
+								Cancel
+							</Button>
+							<Button
+								colorScheme="red"
+								isLoading={removingApartmentId === apartmentToRemove?.id}
+								loadingText="Removing..."
+								onClick={confirmRemoveApartment}
+								ml={3}
+							>
+								Remove Apartment
+							</Button>
+						</AlertDialogFooter>
+					</AlertDialogContent>
+				</AlertDialogOverlay>
+			</AlertDialog>
 		</Flex>
 	);
 };

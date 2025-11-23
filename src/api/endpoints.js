@@ -62,6 +62,18 @@ export const APARTMENT_ENDPOINTS = {
     getById: withId("/admin/apartments/details"),
     update: withId("/admin/apartments/details"),
     delete: withId("/admin/apartments/remove")
+  },
+  seasonalPricing: {
+    list: (apartmentId) => endpoint(`/admin/apartments/${apartmentId}/seasonal-pricing`),
+    create: (apartmentId) => endpoint(`/admin/apartments/${apartmentId}/seasonal-pricing`),
+    update: (apartmentId, pricingId) => endpoint(`/admin/apartments/${apartmentId}/seasonal-pricing/${pricingId}`),
+    delete: (apartmentId, pricingId) => endpoint(`/admin/apartments/${apartmentId}/seasonal-pricing/${pricingId}`)
+  },
+  bedroomPricing: {
+    list: (apartmentId) => endpoint(`/admin/apartments/${apartmentId}/bedroom-pricing`),
+    create: (apartmentId) => endpoint(`/admin/apartments/${apartmentId}/bedroom-pricing`),
+    update: (apartmentId, pricingId) => endpoint(`/admin/apartments/${apartmentId}/bedroom-pricing/${pricingId}`),
+    delete: (apartmentId, pricingId) => endpoint(`/admin/apartments/${apartmentId}/bedroom-pricing/${pricingId}`)
   }
 };
 
@@ -112,8 +124,10 @@ export const SHOP_ENDPOINTS = {
   requests: {
     list: endpoint("/admin/shop/requests"),
     getById: withId("/admin/shop/requests"),
-    confirmPayment: (requestId) => endpoint(`/admin/shop/requests/${requestId}/confirm-payment`),
     approve: (requestId) => endpoint(`/admin/shop/requests/${requestId}/approve`),
+    reject: (requestId) => endpoint(`/admin/shop/requests/${requestId}/reject`),
+    fulfill: (requestId) => endpoint(`/admin/shop/requests/${requestId}/fulfill`),
+    confirmPayment: (requestId) => endpoint(`/admin/shop/requests/${requestId}/confirm-payment`),
     pendingCount: endpoint("/admin/shop/requests/pending/count"),
   },
 };

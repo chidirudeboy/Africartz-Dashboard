@@ -95,7 +95,9 @@ const ApprovedApartments = () => {
 	const { isOpen, onOpen, onClose } = useDisclosure();
 	const { isOpen: isMediaViewerOpen, onOpen: onMediaViewerOpen, onClose: onMediaViewerClose } = useDisclosure();
 	const { isOpen: isRemoveDialogOpen, onOpen: onRemoveDialogOpen, onClose: onRemoveDialogClose } = useDisclosure();
+	const { isOpen: isDeleteSeasonalDialogOpen, onOpen: onDeleteSeasonalDialogOpen, onClose: onDeleteSeasonalDialogClose } = useDisclosure();
 	const cancelRef = useRef();
+	const deleteSeasonalCancelRef = useRef();
 	const [removingApartmentId, setRemovingApartmentId] = useState(null);
 	const [apartmentToRemove, setApartmentToRemove] = useState(null);
 	const [removeReason, setRemoveReason] = useState("");
@@ -106,6 +108,8 @@ const ApprovedApartments = () => {
 	const [isBedroomModalOpen, setBedroomModalOpen] = useState(false);
 	const [bedroomFormData, setBedroomFormData] = useState({ bedrooms: "", price: "", isActive: true });
 	const [editingBedroomIndex, setEditingBedroomIndex] = useState(null);
+	const [seasonalPricingToDelete, setSeasonalPricingToDelete] = useState(null);
+	const [deletingSeasonalPricingId, setDeletingSeasonalPricingId] = useState(null);
 
 	const fetchApprovedApartments = async () => {
 		setLoading(true);
@@ -513,10 +517,23 @@ const ApprovedApartments = () => {
 		}
 	};
 
-	const handleDeleteSeasonal = async (index) => {
-		if (!selectedApartment?._id) return;
+	const handleDeleteSeasonal = (index, event) => {
+		// Prevent event propagation
+		if (event) {
+			event.preventDefault();
+			event.stopPropagation();
+		}
+
+		if (!selectedApartment?._id) {
+			console.error("No apartment selected");
+			return;
+		}
+
 		const currentSeasonal = selectedApartment.seasonalPricing || [];
-		if (index < 0 || index >= currentSeasonal.length) return;
+		if (index < 0 || index >= currentSeasonal.length) {
+			console.error("Invalid index:", index);
+			return;
+		}
 
 		const pricing = currentSeasonal[index];
 		if (!pricing._id) {
@@ -530,12 +547,23 @@ const ApprovedApartments = () => {
 			return;
 		}
 
+		// Store the pricing to delete and open confirmation dialog
+		setSeasonalPricingToDelete({ ...pricing, index });
+		onDeleteSeasonalDialogOpen();
+	};
+
+	const confirmDeleteSeasonal = async () => {
+		if (!selectedApartment?._id || !seasonalPricingToDelete?._id) {
+			return;
+		}
+
+		setDeletingSeasonalPricingId(seasonalPricingToDelete._id);
 		try {
 			const authToken = localStorage.getItem("authToken");
 			if (!authToken) throw new Error("No authentication token found");
 
 			await axios.delete(
-				APARTMENT_ENDPOINTS.seasonalPricing.delete(selectedApartment._id, pricing._id),
+				APARTMENT_ENDPOINTS.seasonalPricing.delete(selectedApartment._id, seasonalPricingToDelete._id),
 				{
 					headers: {
 						"Content-Type": "application/json",
@@ -554,6 +582,8 @@ const ApprovedApartments = () => {
 
 			// Refetch apartment details to get updated pricing
 			await fetchApartmentDetails(selectedApartment._id);
+			onDeleteSeasonalDialogClose();
+			setSeasonalPricingToDelete(null);
 		} catch (error) {
 			console.error("Error deleting seasonal pricing:", error);
 			toast({
@@ -563,6 +593,8 @@ const ApprovedApartments = () => {
 				duration: 5000,
 				isClosable: true,
 			});
+		} finally {
+			setDeletingSeasonalPricingId(null);
 		}
 	};
 
@@ -2286,7 +2318,11 @@ const ApprovedApartments = () => {
 																				colorScheme="red"
 																				aria-label="Delete season"
 																				icon={<Icon as={FaTrash} />}
-																				onClick={() => handleDeleteSeasonal(index)}
+																				onClick={(e) => {
+																					e.preventDefault();
+																					e.stopPropagation();
+																					handleDeleteSeasonal(index, e);
+																				}}
 																			/>
 																		</>
 																	)}
@@ -3169,6 +3205,61 @@ const ApprovedApartments = () => {
 								ml={3}
 							>
 								Remove Apartment
+							</Button>
+						</AlertDialogFooter>
+					</AlertDialogContent>
+				</AlertDialogOverlay>
+			</AlertDialog>
+
+			{/* Delete Seasonal Pricing Confirmation Dialog */}
+			<AlertDialog
+				isOpen={isDeleteSeasonalDialogOpen}
+				leastDestructiveRef={deleteSeasonalCancelRef}
+				onClose={onDeleteSeasonalDialogClose}
+				isCentered
+			>
+				<AlertDialogOverlay>
+					<AlertDialogContent>
+						<AlertDialogHeader fontSize="lg" fontWeight="bold" color="red.600">
+							Delete Seasonal Pricing
+						</AlertDialogHeader>
+
+						<AlertDialogBody>
+							<VStack spacing={3} align="stretch">
+								<Text>
+									Are you sure you want to delete the seasonal pricing <strong>"{seasonalPricingToDelete?.name}"</strong>?
+								</Text>
+								{seasonalPricingToDelete && (
+									<Box p={3} bg="gray.50" borderRadius="md">
+										<Text fontSize="sm" color="gray.600" mb={1}>
+											<strong>Details:</strong>
+										</Text>
+										<Text fontSize="sm" color="gray.700">
+											Additional Fee: +₦{(seasonalPricingToDelete.additionalFee || 0).toLocaleString()} per night
+										</Text>
+										<Text fontSize="sm" color="gray.700">
+											Period: {formatDateLabel(seasonalPricingToDelete.startDate)} — {formatDateLabel(seasonalPricingToDelete.endDate)}
+										</Text>
+									</Box>
+								)}
+								<Text fontSize="sm" color="gray.600">
+									This action cannot be undone. The seasonal pricing will be permanently removed.
+								</Text>
+							</VStack>
+						</AlertDialogBody>
+
+						<AlertDialogFooter>
+							<Button ref={deleteSeasonalCancelRef} onClick={onDeleteSeasonalDialogClose}>
+								Cancel
+							</Button>
+							<Button
+								colorScheme="red"
+								isLoading={deletingSeasonalPricingId === seasonalPricingToDelete?._id}
+								loadingText="Deleting..."
+								onClick={confirmDeleteSeasonal}
+								ml={3}
+							>
+								Delete
 							</Button>
 						</AlertDialogFooter>
 					</AlertDialogContent>

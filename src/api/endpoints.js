@@ -112,9 +112,8 @@ export const SHOP_ENDPOINTS = {
   requests: {
     list: endpoint("/admin/shop/requests"),
     getById: withId("/admin/shop/requests"),
+    confirmPayment: (requestId) => endpoint(`/admin/shop/requests/${requestId}/confirm-payment`),
     approve: (requestId) => endpoint(`/admin/shop/requests/${requestId}/approve`),
-    reject: (requestId) => endpoint(`/admin/shop/requests/${requestId}/reject`),
-    fulfill: (requestId) => endpoint(`/admin/shop/requests/${requestId}/fulfill`),
     pendingCount: endpoint("/admin/shop/requests/pending/count"),
   },
 };

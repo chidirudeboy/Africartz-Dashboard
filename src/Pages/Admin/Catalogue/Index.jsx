@@ -22,7 +22,7 @@ import { AdminGetCatalogueAPI } from "../../../Endpoints";
 const Catalogue = () => {
 	const [apartments, setApartments] = useState([]);
 	const [loading, setLoading] = useState(false);
-	const [filters, setFilters] = useState({ bedrooms: "", city: "" });
+	const [filters, setFilters] = useState({ bedrooms: "", city: "", state: "" });
 	const [hasSearched, setHasSearched] = useState(false);
 	const toast = useToast();
 
@@ -34,15 +34,18 @@ const Catalogue = () => {
 				throw new Error("Authentication required");
 			}
 
+			const params = {
+				bedrooms: filters.bedrooms || undefined,
+				city: filters.city || undefined,
+				state: filters.state || undefined,
+			};
+
 			const response = await axios.get(AdminGetCatalogueAPI, {
 				headers: {
 					"Content-Type": "application/json",
 					Authorization: `Bearer ${authToken}`,
 				},
-				params: {
-					bedrooms: filters.bedrooms || undefined,
-					city: filters.city || undefined,
-				},
+				params,
 			});
 
 			const data = response.data?.apartments || [];
@@ -155,22 +158,30 @@ const Catalogue = () => {
 							placeholder="e.g., 2"
 						/>
 					</FormControl>
-				<FormControl maxW="260px">
-					<FormLabel fontSize="sm">City / State</FormLabel>
-					<Input
-						value={filters.city}
-						onChange={(e) => setFilters((prev) => ({ ...prev, city: e.target.value }))}
-						placeholder="City or state"
-					/>
-				</FormControl>
+					<FormControl maxW="200px">
+						<FormLabel fontSize="sm">City</FormLabel>
+						<Input
+							value={filters.city}
+							onChange={(e) => setFilters((prev) => ({ ...prev, city: e.target.value }))}
+							placeholder="City"
+						/>
+					</FormControl>
+					<FormControl maxW="200px">
+						<FormLabel fontSize="sm">State</FormLabel>
+						<Input
+							value={filters.state}
+							onChange={(e) => setFilters((prev) => ({ ...prev, state: e.target.value }))}
+							placeholder="State"
+						/>
+					</FormControl>
 					<Button
 						leftIcon={<SearchIcon />}
 						colorScheme="orange"
 						onClick={() => {
-							if (!filters.city) {
+							if (!filters.city && !filters.state) {
 								toast({
-									title: "City is required",
-									description: "Specify a city to search the catalogue.",
+									title: "City or State is required",
+									description: "Specify a city or state to search the catalogue.",
 									status: "warning",
 									duration: 3000,
 									isClosable: true,
@@ -187,7 +198,7 @@ const Catalogue = () => {
 						variant="ghost"
 						colorScheme="gray"
 						onClick={() => {
-							setFilters({ bedrooms: "", city: "" });
+							setFilters({ bedrooms: "", city: "", state: "" });
 							setHasSearched(false);
 							setApartments([]);
 						}}
@@ -210,7 +221,7 @@ const Catalogue = () => {
 				</Flex>
 			) : hasSearched ? (
 				apartments.length === 0 ? (
-					<Text>No links found for the selected city.</Text>
+					<Text>No links found for the selected filters.</Text>
 				) : (
 					<Stack spacing="3">
 						{apartments.map((apartment) => (
@@ -234,7 +245,7 @@ const Catalogue = () => {
 				)
 			) : (
 				<Text fontSize="sm" color="gray.500">
-					Start by searching for a city to show catalogue links.
+					Start by searching with city or state to show catalogue links.
 				</Text>
 			)}
 		</Box>

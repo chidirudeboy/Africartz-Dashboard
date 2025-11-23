@@ -56,7 +56,7 @@ import {
 	AlertDialogContent,
 	AlertDialogOverlay
 } from "@chakra-ui/react";
-import { FaWifi, FaPhoneAlt, FaWhatsapp, FaMapMarkerAlt, FaBed, FaBath, FaUsers, FaChevronLeft, FaChevronRight, FaTimes, FaEdit, FaTrash, FaUpload, FaCheck, FaStar, FaRegStar, FaPlus } from "react-icons/fa";
+import { FaWifi, FaPhoneAlt, FaMapMarkerAlt, FaBed, FaBath, FaUsers, FaChevronLeft, FaChevronRight, FaTimes, FaEdit, FaTrash, FaUpload, FaCheck, FaStar, FaRegStar, FaPlus } from "react-icons/fa";
 import { useState, useEffect, Fragment, useRef } from "react";
 import { Column } from "primereact/column";
 import { DataTable } from "primereact/datatable";
@@ -174,21 +174,42 @@ const ApprovedApartments = () => {
 			if (response.data?.apartment) {
 				const apartmentData = { ...response.data.apartment };
 
-				// Parse amenities - it's an array with JSON string as first element
-				if (Array.isArray(apartmentData.amenities) && apartmentData.amenities.length > 0 && typeof apartmentData.amenities[0] === 'string') {
-					try {
-						apartmentData.amenities = JSON.parse(apartmentData.amenities[0]);
-					} catch (e) {
-						console.warn("Failed to parse amenities:", e);
-						apartmentData.amenities = [];
+				// Parse amenities - handle various formats
+				if (apartmentData.amenities) {
+					if (Array.isArray(apartmentData.amenities) && apartmentData.amenities.length > 0) {
+						// If first element is a string (JSON string), parse it
+						if (typeof apartmentData.amenities[0] === 'string') {
+							try {
+								const parsed = JSON.parse(apartmentData.amenities[0]);
+								apartmentData.amenities = Array.isArray(parsed) ? parsed : [parsed];
+							} catch (e) {
+								console.warn("Failed to parse amenities from array:", e);
+								// If parsing fails, check if it's already an array of strings
+								if (apartmentData.amenities.every(item => typeof item === 'string')) {
+									// Already an array of strings, use as is
+									apartmentData.amenities = apartmentData.amenities;
+								} else {
+									apartmentData.amenities = [];
+								}
+							}
+						}
+						// If it's already an array of strings/objects, use as is
+					} else if (typeof apartmentData.amenities === 'string') {
+						try {
+							const parsed = JSON.parse(apartmentData.amenities);
+							apartmentData.amenities = Array.isArray(parsed) ? parsed : [parsed];
+						} catch (e) {
+							console.warn("Failed to parse amenities string:", e);
+							apartmentData.amenities = [];
+						}
 					}
-				} else if (typeof apartmentData.amenities === 'string') {
-					try {
-						apartmentData.amenities = JSON.parse(apartmentData.amenities);
-					} catch (e) {
-						console.warn("Failed to parse amenities:", e);
-						apartmentData.amenities = [];
-					}
+				} else {
+					apartmentData.amenities = [];
+				}
+				
+				// Ensure amenities is always an array
+				if (!Array.isArray(apartmentData.amenities)) {
+					apartmentData.amenities = [];
 				}
 
 				setSelectedApartment(apartmentData);
@@ -217,7 +238,16 @@ const ApprovedApartments = () => {
 			setTimeout(() => {
 				if (selectedApartment) {
 					setIsEditMode(true);
-					setEditedApartment({ ...selectedApartment });
+					// Ensure contact_details is properly initialized
+					const apartmentCopy = {
+						...selectedApartment,
+						contact_details: selectedApartment.contact_details || {
+							contactPersonName: "",
+							contactPersonRole: "",
+							phone: ""
+						}
+					};
+					setEditedApartment(apartmentCopy);
 					setFavoriteImageIndex(selectedApartment?.media?.favoriteImageIndex || null);
 				}
 			}, 100);
@@ -226,7 +256,16 @@ const ApprovedApartments = () => {
 
 	const handleEditApartment = () => {
 		setIsEditMode(true);
-		setEditedApartment({ ...selectedApartment });
+		// Ensure contact_details is properly initialized
+		const apartmentCopy = {
+			...selectedApartment,
+			contact_details: selectedApartment.contact_details || {
+				contactPersonName: "",
+				contactPersonRole: "",
+				phone: ""
+			}
+		};
+		setEditedApartment(apartmentCopy);
 		setFavoriteImageIndex(selectedApartment?.media?.favoriteImageIndex || null);
 	};
 
@@ -886,9 +925,18 @@ const ApprovedApartments = () => {
 			if (JSON.stringify(editedApartment.optionalFees || {}) !== JSON.stringify(selectedApartment.optionalFees || {})) {
 				updatePayload.optionalFees = editedApartment.optionalFees;
 			}
-			if (JSON.stringify(editedApartment.contact_details || {}) !== JSON.stringify(selectedApartment.contact_details || {})) {
-				updatePayload.contact_details = editedApartment.contact_details;
-			}
+			// Always include contact_details when editing - ensure all fields are included
+			const editedContact = editedApartment.contact_details || {};
+			const selectedContact = selectedApartment.contact_details || {};
+			
+			// Always include contact_details in the payload when editing (to ensure updates are saved)
+			// Include all fields, using empty string as fallback for missing fields
+			updatePayload.contact_details = {
+				contactPersonName: editedContact.contactPersonName || "",
+				contactPersonRole: editedContact.contactPersonRole || "",
+				phone: editedContact.phone || selectedContact.phone || "", // Ensure phone is always set
+			};
+			console.log("✅ Contact details will be updated:", updatePayload.contact_details);
 			if (JSON.stringify(editedApartment.accessDetails || {}) !== JSON.stringify(selectedApartment.accessDetails || {})) {
 				updatePayload.accessDetails = editedApartment.accessDetails;
 			}
@@ -935,14 +983,21 @@ const ApprovedApartments = () => {
 					if (typeof value === 'object' && !Array.isArray(value)) {
 						// Stringify objects for FormData
 						formData.append(key, JSON.stringify(value));
+						console.log(`📤 Sending ${key}:`, JSON.stringify(value));
 					} else if (Array.isArray(value)) {
 						// Stringify arrays for FormData
 						formData.append(key, JSON.stringify(value));
+						console.log(`📤 Sending ${key}:`, JSON.stringify(value));
 					} else {
 						formData.append(key, value.toString());
+						console.log(`📤 Sending ${key}:`, value.toString());
 					}
 				}
 			});
+			
+			// Debug: Log what we're sending
+			console.log("📋 Update Payload:", updatePayload);
+			console.log("📋 Contact Details in Payload:", updatePayload.contact_details);
 
 			// Add new files to FormData - backend expects files in 'media' field
 			// Multer is configured to accept files in 'media' field and filter by mimetype
@@ -2327,13 +2382,19 @@ const ApprovedApartments = () => {
 												</VStack>
 											) : (
 											<Wrap spacing={3}>
-												{selectedApartment.amenities?.map((amenity, index) => (
-													<WrapItem key={index}>
-														<Tag size="lg" colorScheme="blue" borderRadius="full" px={4} py={2}>
-															{amenity}
-														</Tag>
-													</WrapItem>
-												))}
+												{selectedApartment.amenities && Array.isArray(selectedApartment.amenities) && selectedApartment.amenities.length > 0 ? (
+													selectedApartment.amenities.map((amenity, index) => (
+														<WrapItem key={index}>
+															<Tag size="lg" colorScheme="blue" borderRadius="full" px={4} py={2}>
+																{amenity}
+															</Tag>
+														</WrapItem>
+													))
+												) : (
+													<Box p={4} textAlign="center" color="gray.500">
+														<Text>No amenities available for this apartment</Text>
+													</Box>
+												)}
 											</Wrap>
 											)}
 										</Box>
@@ -2497,10 +2558,11 @@ const ApprovedApartments = () => {
 																	onChange={(e) => setEditedApartment({
 																		...editedApartment,
 																		contact_details: {
-																			...editedApartment.contact_details,
+																			...(editedApartment.contact_details || {}),
 																			contactPersonName: e.target.value
 																		}
 																	})}
+																	placeholder="Enter contact person name"
 																/>
 															</FormControl>
 															<FormControl>
@@ -2510,36 +2572,25 @@ const ApprovedApartments = () => {
 																	onChange={(e) => setEditedApartment({
 																		...editedApartment,
 																		contact_details: {
-																			...editedApartment.contact_details,
+																			...(editedApartment.contact_details || {}),
 																			contactPersonRole: e.target.value
 																		}
 																	})}
+																	placeholder="Enter contact person role"
 																/>
 															</FormControl>
 															<FormControl>
-																<FormLabel>Phone</FormLabel>
+																<FormLabel>Phone Number</FormLabel>
 																<Input
 																	value={editedApartment.contact_details?.phone || ""}
 																	onChange={(e) => setEditedApartment({
 																		...editedApartment,
 																		contact_details: {
-																			...editedApartment.contact_details,
+																			...(editedApartment.contact_details || {}),
 																			phone: e.target.value
 																		}
 																	})}
-																/>
-															</FormControl>
-															<FormControl>
-																<FormLabel>WhatsApp Number</FormLabel>
-																<Input
-																	value={editedApartment.contact_details?.whatsappNumber || ""}
-																	onChange={(e) => setEditedApartment({
-																		...editedApartment,
-																		contact_details: {
-																			...editedApartment.contact_details,
-																			whatsappNumber: e.target.value
-																		}
-																	})}
+																	placeholder="Enter phone number"
 																/>
 															</FormControl>
 														</Stack>
@@ -2554,10 +2605,6 @@ const ApprovedApartments = () => {
 														<Flex align="center">
 															<Icon as={FaPhoneAlt} color="green.500" mr={2} />
 															<Text><strong>Phone:</strong> {selectedApartment.contact_details?.phone}</Text>
-														</Flex>
-														<Flex align="center">
-															<Icon as={FaWhatsapp} color="green.500" mr={2} />
-															<Text><strong>WhatsApp:</strong> {selectedApartment.contact_details?.whatsappNumber}</Text>
 														</Flex>
 													</Stack>
 												</GridItem>

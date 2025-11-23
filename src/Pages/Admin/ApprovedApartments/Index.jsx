@@ -49,6 +49,7 @@ import {
 	IconButton,
 	Checkbox,
 	CheckboxGroup,
+	Select,
 	AlertDialog,
 	AlertDialogBody,
 	AlertDialogFooter,
@@ -70,6 +71,7 @@ import {
 	AdminUpdateApartmentAPI,
 	AdminRemoveApartmentAPI,
 } from "../../../Endpoints";
+import { APARTMENT_ENDPOINTS } from "../../../api/endpoints";
 import { createUploadService } from "../../../utils/uploadService";
 
 const ApprovedApartments = () => {
@@ -98,9 +100,6 @@ const ApprovedApartments = () => {
 	const [apartmentToRemove, setApartmentToRemove] = useState(null);
 	const [removeReason, setRemoveReason] = useState("");
 	const toast = useToast();
-	const [isDiscountModalOpen, setDiscountModalOpen] = useState(false);
-	const [discountFormData, setDiscountFormData] = useState({ minNights: "", discountPercent: "", isActive: true });
-	const [editingDiscountIndex, setEditingDiscountIndex] = useState(null);
 	const [isSeasonalModalOpen, setSeasonalModalOpen] = useState(false);
 	const [seasonalFormData, setSeasonalFormData] = useState({ name: "", additionalFee: "", startDate: "", endDate: "", isActive: true });
 	const [editingSeasonalIndex, setEditingSeasonalIndex] = useState(null);
@@ -176,31 +175,42 @@ const ApprovedApartments = () => {
 
 				// Parse amenities - handle various formats
 				if (apartmentData.amenities) {
-					if (Array.isArray(apartmentData.amenities) && apartmentData.amenities.length > 0) {
-						// If first element is a string (JSON string), parse it
-						if (typeof apartmentData.amenities[0] === 'string') {
+					if (Array.isArray(apartmentData.amenities)) {
+						// If it's an array, check if first element is a JSON string
+						if (apartmentData.amenities.length > 0 && typeof apartmentData.amenities[0] === 'string') {
+							// Check if it looks like JSON (starts with [ or {)
+							const firstItem = apartmentData.amenities[0].trim();
+							if (firstItem.startsWith('[') || firstItem.startsWith('{')) {
+								try {
+									const parsed = JSON.parse(apartmentData.amenities[0]);
+									apartmentData.amenities = Array.isArray(parsed) ? parsed : [parsed];
+								} catch (e) {
+									// If parsing fails, it's likely already an array of strings, use as is
+									console.warn("Failed to parse amenities JSON, using as array of strings:", e);
+									apartmentData.amenities = apartmentData.amenities;
+								}
+							} else {
+								// It's already an array of strings (like ["Wi-Fi", "Pool"]), use as is
+								apartmentData.amenities = apartmentData.amenities;
+							}
+						} else {
+							// Already an array of objects or mixed, use as is
+							apartmentData.amenities = apartmentData.amenities;
+						}
+					} else if (typeof apartmentData.amenities === 'string') {
+						// Check if it looks like JSON
+						const trimmed = apartmentData.amenities.trim();
+						if (trimmed.startsWith('[') || trimmed.startsWith('{')) {
 							try {
-								const parsed = JSON.parse(apartmentData.amenities[0]);
+								const parsed = JSON.parse(apartmentData.amenities);
 								apartmentData.amenities = Array.isArray(parsed) ? parsed : [parsed];
 							} catch (e) {
-								console.warn("Failed to parse amenities from array:", e);
-								// If parsing fails, check if it's already an array of strings
-								if (apartmentData.amenities.every(item => typeof item === 'string')) {
-									// Already an array of strings, use as is
-									apartmentData.amenities = apartmentData.amenities;
-								} else {
-									apartmentData.amenities = [];
-								}
+								console.warn("Failed to parse amenities string:", e);
+								apartmentData.amenities = [];
 							}
-						}
-						// If it's already an array of strings/objects, use as is
-					} else if (typeof apartmentData.amenities === 'string') {
-						try {
-							const parsed = JSON.parse(apartmentData.amenities);
-							apartmentData.amenities = Array.isArray(parsed) ? parsed : [parsed];
-						} catch (e) {
-							console.warn("Failed to parse amenities string:", e);
-							apartmentData.amenities = [];
+						} else {
+							// It's a plain string, convert to array
+							apartmentData.amenities = [apartmentData.amenities];
 						}
 					}
 				} else {
@@ -211,6 +221,72 @@ const ApprovedApartments = () => {
 				if (!Array.isArray(apartmentData.amenities)) {
 					apartmentData.amenities = [];
 				}
+
+				// Ensure seasonalPricing is always an array
+				if (!apartmentData.seasonalPricing) {
+					apartmentData.seasonalPricing = [];
+				} else if (!Array.isArray(apartmentData.seasonalPricing)) {
+					// If it's a single object, wrap it in an array
+					apartmentData.seasonalPricing = [apartmentData.seasonalPricing];
+				}
+
+				// Ensure bedroomPricing is always an array
+				if (!apartmentData.bedroomPricing) {
+					apartmentData.bedroomPricing = [];
+				} else if (!Array.isArray(apartmentData.bedroomPricing)) {
+					// If it's a single object, wrap it in an array
+					apartmentData.bedroomPricing = [apartmentData.bedroomPricing];
+				}
+
+				// Fetch seasonal and bedroom pricing separately using dedicated endpoints
+				try {
+					const [seasonalResponse, bedroomResponse] = await Promise.all([
+						axios.get(APARTMENT_ENDPOINTS.seasonalPricing.list(apartmentId), {
+							headers: {
+								"Content-Type": "application/json",
+								Authorization: `Bearer ${authToken}`,
+							},
+						}).catch(() => ({ data: { success: true, seasonalPricing: [] } })),
+						axios.get(APARTMENT_ENDPOINTS.bedroomPricing.list(apartmentId), {
+							headers: {
+								"Content-Type": "application/json",
+								Authorization: `Bearer ${authToken}`,
+							},
+						}).catch(() => ({ data: { success: true, bedroomPricing: [] } }))
+					]);
+
+					// Update apartment data with fetched pricing
+					if (seasonalResponse.data?.seasonalPricing) {
+						apartmentData.seasonalPricing = Array.isArray(seasonalResponse.data.seasonalPricing) 
+							? seasonalResponse.data.seasonalPricing 
+							: [];
+					}
+					if (bedroomResponse.data?.bedroomPricing) {
+						apartmentData.bedroomPricing = Array.isArray(bedroomResponse.data.bedroomPricing) 
+							? bedroomResponse.data.bedroomPricing 
+							: [];
+					}
+
+					console.log("📋 Fetched pricing data:", {
+						seasonalPricing: apartmentData.seasonalPricing,
+						bedroomPricing: apartmentData.bedroomPricing,
+						seasonalLength: apartmentData.seasonalPricing?.length,
+						bedroomLength: apartmentData.bedroomPricing?.length
+					});
+				} catch (error) {
+					console.error("Error fetching pricing data:", error);
+					// Continue with empty arrays if fetch fails
+					apartmentData.seasonalPricing = apartmentData.seasonalPricing || [];
+					apartmentData.bedroomPricing = apartmentData.bedroomPricing || [];
+				}
+
+				console.log("📋 Fetched apartment data:", {
+					apartmentId: apartmentData._id,
+					seasonalPricing: apartmentData.seasonalPricing,
+					bedroomPricing: apartmentData.bedroomPricing,
+					seasonalPricingLength: apartmentData.seasonalPricing?.length,
+					bedroomPricingLength: apartmentData.bedroomPricing?.length
+				});
 
 				setSelectedApartment(apartmentData);
 				onOpen();
@@ -277,14 +353,8 @@ const ApprovedApartments = () => {
 		setDeletedImages([]);
 		setDeletedVideos([]);
 		setFavoriteImageIndex(null);
-		closeDiscountModal();
 		closeSeasonalModal();
 		closeBedroomModal();
-	};
-
-	const resetDiscountForm = () => {
-		setDiscountFormData({ minNights: "", discountPercent: "", isActive: true });
-		setEditingDiscountIndex(null);
 	};
 
 	const resetSeasonalForm = () => {
@@ -309,137 +379,8 @@ const ApprovedApartments = () => {
 		return Number.isNaN(date.getTime()) ? "N/A" : date.toLocaleDateString();
 	};
 
-	const openDiscountModal = (discount = null, index = null) => {
-		if (!isEditMode || !editedApartment) return;
-		setEditingDiscountIndex(typeof index === "number" ? index : null);
-		setDiscountFormData({
-			minNights: discount?.minNights?.toString() || "",
-			discountPercent: discount?.discountPercent?.toString() || "",
-			isActive: discount?.isActive ?? true,
-		});
-		setDiscountModalOpen(true);
-	};
-
-	const handleDiscountSave = () => {
-		if (!editedApartment) return;
-		const { minNights, discountPercent } = discountFormData;
-		if (!minNights || !discountPercent) {
-			toast({
-				title: "Validation Error",
-				description: "Please provide both minimum nights and discount percent.",
-				status: "warning",
-				duration: 3000,
-				isClosable: true,
-			});
-			return;
-		}
-
-		const parsedMinNights = parseInt(minNights, 10);
-		const parsedDiscountPercent = parseFloat(discountPercent);
-
-		if (parsedMinNights < 1) {
-			toast({
-				title: "Validation Error",
-				description: "Minimum nights must be at least 1.",
-				status: "warning",
-				duration: 3000,
-				isClosable: true,
-			});
-			return;
-		}
-
-		if (parsedDiscountPercent < 0 || parsedDiscountPercent > 100) {
-			toast({
-				title: "Validation Error",
-				description: "Discount must fall between 0% and 100%.",
-				status: "warning",
-				duration: 3000,
-				isClosable: true,
-			});
-			return;
-		}
-
-		const nextDiscounts = [...(editedApartment.discounts || [])];
-		const isEditing = editingDiscountIndex !== null;
-
-		if (isEditing && editingDiscountIndex >= 0 && editingDiscountIndex < nextDiscounts.length) {
-			const duplicate = nextDiscounts.some(
-				(d, idx) => idx !== editingDiscountIndex && d.minNights === parsedMinNights
-			);
-			if (duplicate) {
-				toast({
-					title: "Duplicate Configuration",
-					description: "A discount with that minimum nights already exists.",
-					status: "warning",
-					duration: 3000,
-					isClosable: true,
-				});
-				return;
-			}
-
-			nextDiscounts[editingDiscountIndex] = {
-				...nextDiscounts[editingDiscountIndex],
-				minNights: parsedMinNights,
-				discountPercent: parsedDiscountPercent,
-				isActive: discountFormData.isActive,
-				updatedAt: new Date().toISOString(),
-			};
-		} else {
-			const duplicate = nextDiscounts.some((d) => d.minNights === parsedMinNights);
-			if (duplicate) {
-				toast({
-					title: "Duplicate Configuration",
-					description: "A discount with that minimum nights already exists.",
-					status: "warning",
-					duration: 3000,
-					isClosable: true,
-				});
-				return;
-			}
-
-			nextDiscounts.push({
-				minNights: parsedMinNights,
-				discountPercent: parsedDiscountPercent,
-				isActive: discountFormData.isActive,
-				createdAt: new Date().toISOString(),
-				updatedAt: new Date().toISOString(),
-			});
-		}
-
-		setEditedApartment((prev) => ({
-			...prev,
-			discounts: nextDiscounts,
-		}));
-
-		toast({
-			title: "Success",
-			description: "Multi-night discount saved.",
-			status: "success",
-			duration: 3000,
-			isClosable: true,
-		});
-
-		setDiscountModalOpen(false);
-		resetDiscountForm();
-	};
-
-	const handleDeleteDiscount = (index) => {
-		if (!editedApartment) return;
-		const nextDiscounts = [...(editedApartment.discounts || [])];
-		nextDiscounts.splice(index, 1);
-		setEditedApartment((prev) => ({
-			...prev,
-			discounts: nextDiscounts,
-		}));
-	};
-
-	const closeDiscountModal = () => {
-		setDiscountModalOpen(false);
-		resetDiscountForm();
-	};
-
 	const openSeasonalModal = (pricing = null, index = null) => {
-		if (!isEditMode || !editedApartment) return;
+		if (!selectedApartment) return;
 		setEditingSeasonalIndex(typeof index === "number" ? index : null);
 		setSeasonalFormData({
 			name: pricing?.name || "",
@@ -451,8 +392,8 @@ const ApprovedApartments = () => {
 		setSeasonalModalOpen(true);
 	};
 
-	const handleSeasonalSave = () => {
-		if (!editedApartment) return;
+	const handleSeasonalSave = async () => {
+		if (!selectedApartment?._id) return;
 		const { name, additionalFee, startDate, endDate } = seasonalFormData;
 
 		if (!name || !additionalFee || !startDate || !endDate) {
@@ -503,53 +444,126 @@ const ApprovedApartments = () => {
 			return;
 		}
 
-		const nextSeasonal = [...(editedApartment.seasonalPricing || [])];
-		const seasonPayload = {
-			name: name.trim(),
-			additionalFee: parsedFee,
-			startDate: start.toISOString(),
-			endDate: end.toISOString(),
-			isActive: seasonalFormData.isActive,
-			updatedAt: new Date().toISOString(),
-		};
+		try {
+			const authToken = localStorage.getItem("authToken");
+			if (!authToken) throw new Error("No authentication token found");
 
-		if (editingSeasonalIndex !== null && editingSeasonalIndex >= 0 && editingSeasonalIndex < nextSeasonal.length) {
-			nextSeasonal[editingSeasonalIndex] = {
-				...(nextSeasonal[editingSeasonalIndex] || {}),
-				...seasonPayload,
+			const apartmentId = selectedApartment._id;
+			const currentSeasonal = selectedApartment.seasonalPricing || [];
+			const isEditing = editingSeasonalIndex !== null && editingSeasonalIndex >= 0 && editingSeasonalIndex < currentSeasonal.length;
+			const pricingId = isEditing ? currentSeasonal[editingSeasonalIndex]._id : null;
+
+			const payload = {
+				name: name.trim(),
+				additionalFee: parsedFee,
+				startDate: start.toISOString(),
+				endDate: end.toISOString(),
+				isActive: seasonalFormData.isActive,
 			};
-		} else {
-			nextSeasonal.push({
-				...seasonPayload,
-				createdAt: new Date().toISOString(),
+
+			let response;
+			if (isEditing && pricingId) {
+				// Update existing
+				response = await axios.put(
+					APARTMENT_ENDPOINTS.seasonalPricing.update(apartmentId, pricingId),
+					payload,
+					{
+						headers: {
+							"Content-Type": "application/json",
+							Authorization: `Bearer ${authToken}`,
+						},
+					}
+				);
+			} else {
+				// Create new
+				response = await axios.post(
+					APARTMENT_ENDPOINTS.seasonalPricing.create(apartmentId),
+					payload,
+					{
+						headers: {
+							"Content-Type": "application/json",
+							Authorization: `Bearer ${authToken}`,
+						},
+					}
+				);
+			}
+
+			toast({
+				title: "Success",
+				description: isEditing ? "Seasonal pricing updated." : "Seasonal pricing created.",
+				status: "success",
+				duration: 3000,
+				isClosable: true,
+			});
+
+			// Refetch apartment details to get updated pricing
+			await fetchApartmentDetails(apartmentId);
+			
+			setSeasonalModalOpen(false);
+			resetSeasonalForm();
+		} catch (error) {
+			console.error("Error saving seasonal pricing:", error);
+			toast({
+				title: "Error",
+				description: error.response?.data?.error || error.response?.data?.message || error.message || "Failed to save seasonal pricing",
+				status: "error",
+				duration: 5000,
+				isClosable: true,
 			});
 		}
-
-		setEditedApartment((prev) => ({
-			...prev,
-			seasonalPricing: nextSeasonal,
-		}));
-
-		toast({
-			title: "Success",
-			description: "Seasonal pricing saved.",
-			status: "success",
-			duration: 3000,
-			isClosable: true,
-		});
-
-		setSeasonalModalOpen(false);
-		resetSeasonalForm();
 	};
 
-	const handleDeleteSeasonal = (index) => {
-		if (!editedApartment) return;
-		const nextSeasonal = [...(editedApartment.seasonalPricing || [])];
-		nextSeasonal.splice(index, 1);
-		setEditedApartment((prev) => ({
-			...prev,
-			seasonalPricing: nextSeasonal,
-		}));
+	const handleDeleteSeasonal = async (index) => {
+		if (!selectedApartment?._id) return;
+		const currentSeasonal = selectedApartment.seasonalPricing || [];
+		if (index < 0 || index >= currentSeasonal.length) return;
+
+		const pricing = currentSeasonal[index];
+		if (!pricing._id) {
+			toast({
+				title: "Error",
+				description: "Cannot delete: pricing ID not found",
+				status: "error",
+				duration: 3000,
+				isClosable: true,
+			});
+			return;
+		}
+
+		try {
+			const authToken = localStorage.getItem("authToken");
+			if (!authToken) throw new Error("No authentication token found");
+
+			await axios.delete(
+				APARTMENT_ENDPOINTS.seasonalPricing.delete(selectedApartment._id, pricing._id),
+				{
+					headers: {
+						"Content-Type": "application/json",
+						Authorization: `Bearer ${authToken}`,
+					},
+				}
+			);
+
+			toast({
+				title: "Success",
+				description: "Seasonal pricing deleted.",
+				status: "success",
+				duration: 3000,
+				isClosable: true,
+			});
+
+			// Refetch apartment details to get updated pricing
+			await fetchApartmentDetails(selectedApartment._id);
+		} catch (error) {
+			console.error("Error deleting seasonal pricing:", error);
+			toast({
+				title: "Error",
+				description: error.response?.data?.error || error.response?.data?.message || error.message || "Failed to delete seasonal pricing",
+				status: "error",
+				duration: 5000,
+				isClosable: true,
+			});
+		}
 	};
 
 	const closeSeasonalModal = () => {
@@ -558,7 +572,7 @@ const ApprovedApartments = () => {
 	};
 
 	const openBedroomModal = (pricing = null, index = null) => {
-		if (!isEditMode || !editedApartment) return;
+		if (!selectedApartment) return;
 		setEditingBedroomIndex(typeof index === "number" ? index : null);
 		setBedroomFormData({
 			bedrooms: pricing?.bedrooms?.toString() || "",
@@ -568,8 +582,8 @@ const ApprovedApartments = () => {
 		setBedroomModalOpen(true);
 	};
 
-	const handleBedroomSave = () => {
-		if (!editedApartment) return;
+	const handleBedroomSave = async () => {
+		if (!selectedApartment?._id) return;
 		const { bedrooms, price } = bedroomFormData;
 		if (!bedrooms || !price) {
 			toast({
@@ -596,6 +610,18 @@ const ApprovedApartments = () => {
 			return;
 		}
 
+		// Validate bedroom count is less than total bedrooms
+		if (selectedApartment.bedrooms && parsedBedrooms >= selectedApartment.bedrooms) {
+			toast({
+				title: "Validation Error",
+				description: `Bedroom count must be less than the total bedrooms (${selectedApartment.bedrooms}).`,
+				status: "warning",
+				duration: 3000,
+				isClosable: true,
+			});
+			return;
+		}
+
 		if (parsedPrice < 0) {
 			toast({
 				title: "Validation Error",
@@ -607,70 +633,187 @@ const ApprovedApartments = () => {
 			return;
 		}
 
-		const nextBedrooms = [...(editedApartment.bedroomPricing || [])];
-		const duplicate = nextBedrooms.some(
-			(current, idx) =>
-				current.bedrooms === parsedBedrooms && idx !== editingBedroomIndex
-		);
-		if (duplicate) {
+		// Check for duplicate bedroom configurations (when adding new)
+		if (editingBedroomIndex === null) {
+			const currentBedroom = selectedApartment.bedroomPricing || [];
+			const duplicate = currentBedroom.some(
+				(pricing) => pricing.bedrooms === parsedBedrooms
+			);
+			if (duplicate) {
+				toast({
+					title: "Duplicate Configuration",
+					description: "A configuration for that bedroom count already exists.",
+					status: "warning",
+					duration: 3000,
+					isClosable: true,
+				});
+				return;
+			}
+		} else {
+			// When editing, check for duplicates excluding the current one
+			const currentBedroom = selectedApartment.bedroomPricing || [];
+			const duplicate = currentBedroom.some(
+				(pricing, idx) => pricing.bedrooms === parsedBedrooms && idx !== editingBedroomIndex
+			);
+			if (duplicate) {
+				toast({
+					title: "Duplicate Configuration",
+					description: "A configuration for that bedroom count already exists.",
+					status: "warning",
+					duration: 3000,
+					isClosable: true,
+				});
+				return;
+			}
+		}
+
+		try {
+			const authToken = localStorage.getItem("authToken");
+			if (!authToken) throw new Error("No authentication token found");
+
+			const apartmentId = selectedApartment._id;
+			const currentBedroom = selectedApartment.bedroomPricing || [];
+			const isEditing = editingBedroomIndex !== null && editingBedroomIndex >= 0 && editingBedroomIndex < currentBedroom.length;
+			const pricingId = isEditing ? currentBedroom[editingBedroomIndex]._id : null;
+
+			const payload = {
+				bedrooms: parsedBedrooms,
+				price: parsedPrice,
+				isActive: bedroomFormData.isActive,
+			};
+
+			let response;
+			if (isEditing && pricingId) {
+				// Update existing
+				response = await axios.put(
+					APARTMENT_ENDPOINTS.bedroomPricing.update(apartmentId, pricingId),
+					payload,
+					{
+						headers: {
+							"Content-Type": "application/json",
+							Authorization: `Bearer ${authToken}`,
+						},
+					}
+				);
+			} else {
+				// Create new
+				response = await axios.post(
+					APARTMENT_ENDPOINTS.bedroomPricing.create(apartmentId),
+					payload,
+					{
+						headers: {
+							"Content-Type": "application/json",
+							Authorization: `Bearer ${authToken}`,
+						},
+					}
+				);
+			}
+
 			toast({
-				title: "Duplicate Configuration",
-				description: "A configuration for that bedroom count already exists.",
-				status: "warning",
+				title: "Success",
+				description: isEditing ? "Bedroom pricing updated." : "Bedroom pricing created.",
+				status: "success",
+				duration: 3000,
+				isClosable: true,
+			});
+
+			// Refetch apartment details to get updated pricing
+			await fetchApartmentDetails(apartmentId);
+			
+			setBedroomModalOpen(false);
+			resetBedroomForm();
+		} catch (error) {
+			console.error("Error saving bedroom pricing:", error);
+			toast({
+				title: "Error",
+				description: error.response?.data?.error || error.response?.data?.message || error.message || "Failed to save bedroom pricing",
+				status: "error",
+				duration: 5000,
+				isClosable: true,
+			});
+		}
+	};
+
+	const handleDeleteBedroom = async (index) => {
+		if (!selectedApartment?._id) return;
+		const currentBedroom = selectedApartment.bedroomPricing || [];
+		if (index < 0 || index >= currentBedroom.length) return;
+
+		const pricing = currentBedroom[index];
+		if (!pricing._id) {
+			toast({
+				title: "Error",
+				description: "Cannot delete: pricing ID not found",
+				status: "error",
 				duration: 3000,
 				isClosable: true,
 			});
 			return;
 		}
 
-		if (editingBedroomIndex !== null && editingBedroomIndex >= 0 && editingBedroomIndex < nextBedrooms.length) {
-			nextBedrooms[editingBedroomIndex] = {
-				...(nextBedrooms[editingBedroomIndex] || {}),
-				bedrooms: parsedBedrooms,
-				price: parsedPrice,
-				isActive: bedroomFormData.isActive,
-				updatedAt: new Date().toISOString(),
-			};
-		} else {
-			nextBedrooms.push({
-				bedrooms: parsedBedrooms,
-				price: parsedPrice,
-				isActive: bedroomFormData.isActive,
-				createdAt: new Date().toISOString(),
-				updatedAt: new Date().toISOString(),
+		try {
+			const authToken = localStorage.getItem("authToken");
+			if (!authToken) throw new Error("No authentication token found");
+
+			await axios.delete(
+				APARTMENT_ENDPOINTS.bedroomPricing.delete(selectedApartment._id, pricing._id),
+				{
+					headers: {
+						"Content-Type": "application/json",
+						Authorization: `Bearer ${authToken}`,
+					},
+				}
+			);
+
+			toast({
+				title: "Success",
+				description: "Bedroom pricing deleted.",
+				status: "success",
+				duration: 3000,
+				isClosable: true,
+			});
+
+			// Refetch apartment details to get updated pricing
+			await fetchApartmentDetails(selectedApartment._id);
+		} catch (error) {
+			console.error("Error deleting bedroom pricing:", error);
+			toast({
+				title: "Error",
+				description: error.response?.data?.error || error.response?.data?.message || error.message || "Failed to delete bedroom pricing",
+				status: "error",
+				duration: 5000,
+				isClosable: true,
 			});
 		}
-
-		setEditedApartment((prev) => ({
-			...prev,
-			bedroomPricing: nextBedrooms,
-		}));
-
-		toast({
-			title: "Success",
-			description: "Bedroom pricing saved.",
-			status: "success",
-			duration: 3000,
-			isClosable: true,
-		});
-
-		setBedroomModalOpen(false);
-		resetBedroomForm();
-	};
-
-	const handleDeleteBedroom = (index) => {
-		if (!editedApartment) return;
-		const nextBedrooms = [...(editedApartment.bedroomPricing || [])];
-		nextBedrooms.splice(index, 1);
-		setEditedApartment((prev) => ({
-			...prev,
-			bedroomPricing: nextBedrooms,
-		}));
 	};
 
 	const closeBedroomModal = () => {
 		setBedroomModalOpen(false);
 		resetBedroomForm();
+	};
+
+	// Get available bedroom options based on apartment total bedrooms (matching agent app logic)
+	const getAvailableBedroomOptions = () => {
+		if (!selectedApartment || !selectedApartment.bedrooms) return [];
+		
+		const totalBedrooms = selectedApartment.bedrooms;
+		const availableOptions = [];
+		
+		// Generate options from 1 to (totalBedrooms - 1)
+		for (let i = 1; i < totalBedrooms; i++) {
+			availableOptions.push(i);
+		}
+		
+		const currentBedroomPricing = selectedApartment.bedroomPricing || [];
+		
+		// When adding (not editing), filter out already added bedroom pricing
+		if (editingBedroomIndex === null) {
+			const existingBedrooms = currentBedroomPricing.map(p => p.bedrooms);
+			return availableOptions.filter(bedroom => !existingBedrooms.includes(bedroom));
+		}
+		
+		// When editing, include all options (user can change to any available bedroom count)
+		return availableOptions;
 	};
 
 	const handleModalClose = () => {
@@ -681,7 +824,6 @@ const ApprovedApartments = () => {
 		setDeletedImages([]);
 		setDeletedVideos([]);
 		setFavoriteImageIndex(null);
-		closeDiscountModal();
 		closeSeasonalModal();
 		closeBedroomModal();
 		onClose();
@@ -943,15 +1085,8 @@ const ApprovedApartments = () => {
 			if (JSON.stringify(editedApartment.amenities || []) !== JSON.stringify(selectedApartment.amenities || [])) {
 				updatePayload.amenities = editedApartment.amenities;
 			}
-			if (JSON.stringify(editedApartment.discounts || []) !== JSON.stringify(selectedApartment.discounts || [])) {
-				updatePayload.discounts = editedApartment.discounts;
-			}
-			if (JSON.stringify(editedApartment.seasonalPricing || []) !== JSON.stringify(selectedApartment.seasonalPricing || [])) {
-				updatePayload.seasonalPricing = editedApartment.seasonalPricing;
-			}
-			if (JSON.stringify(editedApartment.bedroomPricing || []) !== JSON.stringify(selectedApartment.bedroomPricing || [])) {
-				updatePayload.bedroomPricing = editedApartment.bedroomPricing;
-			}
+			// Note: seasonalPricing and bedroomPricing are now managed via dedicated endpoints
+			// They are not included in the general update payload
 
 			// Handle deleted media - backend expects mediaToRemove array
 			if (deletedImages.length > 0 || deletedVideos.length > 0) {
@@ -998,6 +1133,8 @@ const ApprovedApartments = () => {
 			// Debug: Log what we're sending
 			console.log("📋 Update Payload:", updatePayload);
 			console.log("📋 Contact Details in Payload:", updatePayload.contact_details);
+			console.log("📋 Seasonal Pricing in Payload:", updatePayload.seasonalPricing);
+			console.log("📋 Bedroom Pricing in Payload:", updatePayload.bedroomPricing);
 
 			// Add new files to FormData - backend expects files in 'media' field
 			// Multer is configured to accept files in 'media' field and filter by mimetype
@@ -1032,6 +1169,9 @@ const ApprovedApartments = () => {
 
 			// Refetch apartment details to get updated data from backend
 			await fetchApartmentDetails(selectedApartment._id);
+			
+			// Ensure we wait a bit for state to update
+			await new Promise(resolve => setTimeout(resolve, 100));
 			
 			setIsEditMode(false);
 			setEditedApartment(null);
@@ -1224,9 +1364,33 @@ const ApprovedApartments = () => {
 	const averagePrice = totalApartments > 0 ? totalRevenue / totalApartments : 0;
 	const uniqueAgents = new Set(approvedApartments.map(apt => apt.agentEmail)).size;
 
-	const currentDiscounts = isEditMode ? editedApartment?.discounts || [] : selectedApartment?.discounts || [];
-	const currentSeasonalPricing = isEditMode ? editedApartment?.seasonalPricing || [] : selectedApartment?.seasonalPricing || [];
-	const currentBedroomPricing = isEditMode ? editedApartment?.bedroomPricing || [] : selectedApartment?.bedroomPricing || [];
+	// Get current pricing data - ensure it's always an array
+	const currentSeasonalPricing = (() => {
+		const pricing = isEditMode ? editedApartment?.seasonalPricing : selectedApartment?.seasonalPricing;
+		if (!pricing) return [];
+		if (!Array.isArray(pricing)) return [pricing];
+		return pricing;
+	})();
+
+	const currentBedroomPricing = (() => {
+		const pricing = isEditMode ? editedApartment?.bedroomPricing : selectedApartment?.bedroomPricing;
+		if (!pricing) return [];
+		if (!Array.isArray(pricing)) return [pricing];
+		return pricing;
+	})();
+
+	// Debug logging
+	if (!isEditMode) {
+		console.log("📊 View Mode - Pricing Data:", {
+			selectedApartmentId: selectedApartment?._id,
+			seasonalPricing: selectedApartment?.seasonalPricing,
+			bedroomPricing: selectedApartment?.bedroomPricing,
+			currentSeasonalPricing,
+			currentBedroomPricing,
+			seasonalLength: currentSeasonalPricing.length,
+			bedroomLength: currentBedroomPricing.length
+		});
+	}
 
 	useEffect(() => {
 		fetchApprovedApartments();
@@ -2065,77 +2229,6 @@ const ApprovedApartments = () => {
 											<Box p={4} bg="white" borderRadius="md" border="1px solid" borderColor="gray.200">
 												<Flex justify="space-between" align="center" mb={3}>
 													<Text fontSize="lg" fontWeight="bold" color="#de9301">
-														Multi-night Discounts
-													</Text>
-													{isEditMode && (
-														<Button
-															size="sm"
-															leftIcon={<Icon as={FaPlus} />}
-															colorScheme="orange"
-															variant="outline"
-															onClick={() => openDiscountModal()}
-														>
-															Add Discount
-														</Button>
-													)}
-												</Flex>
-												{currentDiscounts.length > 0 ? (
-													<Stack spacing={3}>
-														{currentDiscounts.map((discount, index) => (
-															<Flex
-																key={discount._id || index}
-																justify="space-between"
-																align="center"
-																p={3}
-																borderRadius="md"
-																border="1px solid"
-																borderColor="gray.100"
-																bg="gray.50"
-															>
-																<VStack align="start" spacing={0}>
-																	<Text fontWeight="bold">
-																		{discount.minNights}+ night{discount.minNights > 1 ? "s" : ""}
-																	</Text>
-																	<Text color="gray.600">
-																		{discount.discountPercent}% discount
-																	</Text>
-																</VStack>
-																<HStack spacing={2}>
-																	<Badge colorScheme={discount.isActive ? "green" : "red"}>
-																		{discount.isActive ? "Active" : "Inactive"}
-																	</Badge>
-																	{isEditMode && (
-																		<>
-																			<IconButton
-																				size="sm"
-																				variant="ghost"
-																				colorScheme="orange"
-																				aria-label="Edit discount"
-																				icon={<Icon as={FaEdit} />}
-																				onClick={() => openDiscountModal(discount, index)}
-																			/>
-																			<IconButton
-																				size="sm"
-																				variant="ghost"
-																				colorScheme="red"
-																				aria-label="Delete discount"
-																				icon={<Icon as={FaTrash} />}
-																				onClick={() => handleDeleteDiscount(index)}
-																			/>
-																		</>
-																	)}
-																</HStack>
-															</Flex>
-														))}
-													</Stack>
-												) : (
-													<Text color="gray.500">No multi-night discounts configured yet.</Text>
-												)}
-											</Box>
-
-											<Box p={4} bg="white" borderRadius="md" border="1px solid" borderColor="gray.200">
-												<Flex justify="space-between" align="center" mb={3}>
-													<Text fontSize="lg" fontWeight="bold" color="#de9301">
 														Seasonal Pricing
 													</Text>
 													{isEditMode && (
@@ -2727,64 +2820,6 @@ const ApprovedApartments = () => {
 				</ModalContent>
 			</Modal>
 
-			{/* Multi-night Discount Modal */}
-			<Modal isOpen={isDiscountModalOpen} onClose={closeDiscountModal} size="lg">
-				<ModalOverlay />
-				<ModalContent>
-					<ModalHeader>
-						{editingDiscountIndex !== null ? "Edit Multi-night Discount" : "Add Multi-night Discount"}
-					</ModalHeader>
-					<ModalCloseButton />
-					<ModalBody>
-						<Stack spacing={4}>
-							<FormControl>
-								<FormLabel>Minimum Nights</FormLabel>
-								<NumberInput
-									value={discountFormData.minNights}
-									min={1}
-									onChange={(value) =>
-										setDiscountFormData((prev) => ({ ...prev, minNights: value }))
-									}
-								>
-									<NumberInputField />
-								</NumberInput>
-							</FormControl>
-							<FormControl>
-								<FormLabel>Discount Percent</FormLabel>
-								<NumberInput
-									value={discountFormData.discountPercent}
-									min={0}
-									max={100}
-									onChange={(value) =>
-										setDiscountFormData((prev) => ({ ...prev, discountPercent: value }))
-									}
-								>
-									<NumberInputField />
-								</NumberInput>
-							</FormControl>
-							<FormControl display="flex" alignItems="center">
-								<Checkbox
-									isChecked={discountFormData.isActive}
-									onChange={(e) =>
-										setDiscountFormData((prev) => ({ ...prev, isActive: e.target.checked }))
-									}
-								>
-									Active
-								</Checkbox>
-							</FormControl>
-						</Stack>
-					</ModalBody>
-					<ModalFooter>
-						<Button variant="ghost" mr={3} onClick={closeDiscountModal}>
-							Cancel
-						</Button>
-						<Button colorScheme="orange" onClick={handleDiscountSave}>
-							Save
-						</Button>
-					</ModalFooter>
-				</ModalContent>
-			</Modal>
-
 			{/* Seasonal Pricing Modal */}
 			<Modal isOpen={isSeasonalModalOpen} onClose={closeSeasonalModal} size="lg">
 				<ModalOverlay />
@@ -2879,15 +2914,47 @@ const ApprovedApartments = () => {
 						<Stack spacing={4}>
 							<FormControl>
 								<FormLabel>Bedrooms</FormLabel>
-								<NumberInput
-									value={bedroomFormData.bedrooms}
-									min={1}
-									onChange={(value) =>
-										setBedroomFormData((prev) => ({ ...prev, bedrooms: value }))
+								{(() => {
+									const availableOptions = getAvailableBedroomOptions();
+									const totalBedrooms = selectedApartment?.bedrooms || 0;
+									
+									if (totalBedrooms <= 1) {
+										return (
+											<Box p={3} bg="yellow.50" borderRadius="md" border="1px solid" borderColor="yellow.200">
+												<Text fontSize="sm" color="yellow.800">
+													For a {totalBedrooms} bedroom apartment, you cannot add pricing for partial bedrooms. Only the full apartment pricing is available.
+												</Text>
+											</Box>
+										);
 									}
-								>
-									<NumberInputField />
-								</NumberInput>
+									
+									if (availableOptions.length === 0 && editingBedroomIndex === null) {
+										return (
+											<Box p={3} bg="yellow.50" borderRadius="md" border="1px solid" borderColor="yellow.200">
+												<Text fontSize="sm" color="yellow.800">
+													All available bedroom configurations have been added.
+												</Text>
+											</Box>
+										);
+									}
+									
+									return (
+										<Select
+											value={bedroomFormData.bedrooms}
+											onChange={(e) =>
+												setBedroomFormData((prev) => ({ ...prev, bedrooms: e.target.value }))
+											}
+											placeholder="Select number of bedrooms"
+											isDisabled={availableOptions.length === 0 && editingBedroomIndex === null}
+										>
+											{availableOptions.map((option) => (
+												<option key={option} value={option}>
+													{option} {option === 1 ? "Bedroom" : "Bedrooms"}
+												</option>
+											))}
+										</Select>
+									);
+								})()}
 							</FormControl>
 							<FormControl>
 								<FormLabel>Price (₦)</FormLabel>

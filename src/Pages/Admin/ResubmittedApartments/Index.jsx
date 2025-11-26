@@ -66,7 +66,9 @@ import { DataTable } from "primereact/datatable";
 import axios from "axios";
 import {
 	AdminGetResubmittedApartmentsAPI,
-	AdminGetResubmittedApartmentDetailsAPI,
+	AdminGetResubmittedApartmentByIdAPI,
+} from "../../../api/endpoints";
+import {
 	AdminApproveResubmittedApartmentAPI,
 	AdminRejectResubmittedApartmentAPI,
 	AdminUpdateApartmentAPI,
@@ -116,9 +118,6 @@ const Index = () => {
 				headers: {
 					"Content-Type": "application/json",
 					Authorization: `Bearer ${authToken}`,
-					"Cache-Control": "no-cache, no-store, must-revalidate",
-					"Pragma": "no-cache",
-					"Expires": "0"
 				},
 				// Add timestamp to prevent caching
 				params: {
@@ -132,16 +131,11 @@ const Index = () => {
 			// Handle different response scenarios
 			if (response.status === 304) {
 				console.warn('Received 304 Not Modified - using cached data or forcing refresh');
-				// Force a refresh by making another request with different cache headers
+				// Force a refresh by making another request with timestamp
 				const freshResponse = await axios.get(AdminGetResubmittedApartmentsAPI, {
 					headers: {
 						"Content-Type": "application/json",
 						Authorization: `Bearer ${authToken}`,
-						"Cache-Control": "no-cache, no-store, must-revalidate, max-age=0",
-						"Pragma": "no-cache",
-						"Expires": "0",
-						"If-None-Match": "",
-						"If-Modified-Since": "Thu, 01 Jan 1970 00:00:00 GMT"
 					},
 					params: {
 						_t: Date.now(),
@@ -269,7 +263,7 @@ const Index = () => {
 			const authToken = localStorage.getItem("authToken");
 			if (!authToken) throw new Error("No authentication token found");
 
-			const response = await axios.get(AdminGetResubmittedApartmentDetailsAPI(apartmentId), {
+			const response = await axios.get(AdminGetResubmittedApartmentByIdAPI(apartmentId), {
 				headers: {
 					"Content-Type": "application/json",
 					Authorization: `Bearer ${authToken}`,
@@ -1006,7 +1000,7 @@ const Index = () => {
 									emptyMessage={
 										<Box textAlign="center" py={8}>
 											<VStack spacing={4}>
-												<Icon as={FaClock} size="3xl" color="gray.400" />
+												<Icon as={FaClock} boxSize="48px" color="gray.400" />
 												<Text fontSize="lg" fontWeight="semibold" color="gray.600">
 													No Resubmitted Apartments
 												</Text>

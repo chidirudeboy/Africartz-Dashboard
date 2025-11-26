@@ -56,6 +56,10 @@ export const APARTMENT_ENDPOINTS = {
     list: endpoint("/admin/apartments/approved"),
     getById: withId("/admin/apartments/approved")
   },
+  resubmitted: {
+    list: endpoint("/admin/apartments/review"),
+    getById: (apartmentId) => endpoint(`/admin/apartments/review/${apartmentId}`)
+  },
   management: {
     list: endpoint("/admin/apartments"),
     create: endpoint("/admin/apartments/add"),
@@ -143,6 +147,8 @@ export const LEGACY_ENDPOINTS = {
   AdminGetPendingApartmentByIdAPI: APARTMENT_ENDPOINTS.pending.getById,
   AdminGetApprovedApartmentsAPI: APARTMENT_ENDPOINTS.approved.list,
   AdminGetApprovedApartmentByIdAPI: APARTMENT_ENDPOINTS.approved.getById,
+  AdminGetResubmittedApartmentsAPI: APARTMENT_ENDPOINTS.resubmitted.list,
+  AdminGetResubmittedApartmentByIdAPI: APARTMENT_ENDPOINTS.resubmitted.getById,
   AdminApprovedApartment: APARTMENT_ENDPOINTS.pending.approve,
   AdminRejectApartment: APARTMENT_ENDPOINTS.pending.reject,
   AdminGetBookingsSummaryAPI: BOOKING_ENDPOINTS.summary,
@@ -160,6 +166,8 @@ export const {
   AdminGetPendingApartmentByIdAPI,
   AdminGetApprovedApartmentsAPI,
   AdminGetApprovedApartmentByIdAPI,
+  AdminGetResubmittedApartmentsAPI,
+  AdminGetResubmittedApartmentByIdAPI,
   AdminApprovedApartment,
   AdminRejectApartment,
   AdminGetBookingsSummaryAPI,

@@ -6,7 +6,7 @@ import { FaBars, FaAngleLeft } from "react-icons/fa";
 import SidebarContent from "./SidebarContent";
 
 // Create context for sidebar state
-const SidebarContext = createContext();
+export const SidebarContext = createContext(null);
 
 export const useSidebar = () => {
 	const context = useContext(SidebarContext);

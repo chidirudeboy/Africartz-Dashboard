@@ -5,7 +5,7 @@ import { ChakraProvider, Portal, useDisclosure } from "@chakra-ui/react";
 import Footer from "../components/Footer/AppFooter";
 // Layout components
 import AdminNavbar from "../components/Navbars/AdminNavbar.js";
-import Sidebar, { useSidebar } from "./Sidebar";
+import Sidebar, { useSidebar, SidebarContext } from "./Sidebar";
 // Custom Chakra theme
 import theme from "../theme/theme.js";
 // Custom components
@@ -23,18 +23,10 @@ const MainContent = () => {
 	// eslint-disable-next-line
 	const { isOpen: navOpen, onOpen, onClose } = useDisclosure();
 
-	// Try to get sidebar context, fallback to default if not available
-	let isOpen = true; // default state
-	let sidebarWidth = "280px";
-
-	try {
-		const sidebarContext = useSidebar();
-		isOpen = sidebarContext.isOpen;
-		sidebarWidth = isOpen ? "280px" : "80px";
-	} catch (error) {
-		// Use defaults if context is not available
-		console.warn("Sidebar context not available, using defaults");
-	}
+	// Get sidebar context with default fallback
+	const sidebarContext = React.useContext(SidebarContext);
+	const isOpen = sidebarContext?.isOpen ?? true; // default to true if context not available
+	const sidebarWidth = isOpen ? "280px" : "80px";
 
 	const activeRoute = () => {
 		let route = location.pathname.split("/")[2];

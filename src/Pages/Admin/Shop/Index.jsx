@@ -50,7 +50,8 @@ import {
 	FaUser,
 	FaCalendar,
 	FaImage,
-	FaCartShopping
+	FaCartShopping,
+	FaLocationDot
 } from "react-icons/fa6";
 
 const initialProductForm = {
@@ -847,6 +848,34 @@ const ShopAdmin = () => {
 														</VStack>
 													</Box>
 												</Flex>
+												
+												{/* Delivery Address Section */}
+												{request.deliveryAddress && (
+													<Box 
+														bg="linear-gradient(135deg, #FEF3C7 0%, #FEF9E7 100%)"
+														borderRadius="xl" 
+														p={4}
+														border="2px solid"
+														borderColor="yellow.300"
+														shadow="sm"
+														_hover={{ shadow: "md", transform: "translateY(-1px)" }}
+														transition="all 0.2s"
+														mb={4}
+													>
+														<HStack spacing={2} mb={3}>
+															<Box bg="yellow.500" borderRadius="full" p={2} shadow="sm">
+																<FaLocationDot size="14px" color="white" />
+															</Box>
+															<Text fontSize="xs" color="yellow.700" fontWeight="700" textTransform="uppercase" letterSpacing="1px">
+																Delivery Address
+															</Text>
+														</HStack>
+														<Text fontSize="sm" fontWeight="600" color="gray.800" lineHeight="1.6">
+															{request.deliveryAddress}
+														</Text>
+													</Box>
+												)}
+												
 												{/* Payment Information Section */}
 												{(request.paymentReceipt || request.paymentAmount) ? (
 													<Box 

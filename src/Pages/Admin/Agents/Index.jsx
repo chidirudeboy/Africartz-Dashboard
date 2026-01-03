@@ -1,5 +1,5 @@
-import { Fragment, useState, useEffect, useContext, useCallback } from "react";
-import { Flex, SimpleGrid, Spinner, Text, useToast, Box, Stat, StatLabel, StatNumber, StatHelpText, Badge, Avatar, HStack, VStack } from "@chakra-ui/react";
+import { Fragment, useState, useEffect, useContext, useCallback, useMemo } from "react";
+import { Flex, SimpleGrid, Spinner, Text, useToast, Box, Stat, StatLabel, StatNumber, StatHelpText, Badge, Avatar, HStack, VStack, Input, InputGroup, InputLeftElement } from "@chakra-ui/react";
 import { Column } from "primereact/column";
 import { DataTable } from "primereact/datatable";
 import axios from "axios";
@@ -8,11 +8,13 @@ import CardBody from "../../../components/Card/CardBody.js";
 import CardHeader from "../../../components/Card/CardHeader.js";
 import { AdminGetAgentAPI } from "../../../Endpoints";
 import GlobalContext from "../../../Context";
+import { SearchIcon } from "@chakra-ui/icons";
 
 const AgentsTable = () => {
 	const [loading, setLoading] = useState(false);
 	const [totalAgents, setTotalAgents] = useState(0);
 	const [agents, setAgents] = useState([]);
+	const [globalFilter, setGlobalFilter] = useState("");
 	const toast = useToast();
 	const { handleTokenExpired } = useContext(GlobalContext);
 
@@ -63,6 +65,20 @@ const AgentsTable = () => {
 		fetchAgents();
 	}, [fetchAgents]);
 
+	// Sort agents alphabetically by full name and add computed fullName field for filtering
+	const sortedAgents = useMemo(() => {
+		return [...agents]
+			.map(agent => ({
+				...agent,
+				fullName: `${agent.firstName} ${agent.lastName}`
+			}))
+			.sort((a, b) => {
+				const nameA = a.fullName.toLowerCase();
+				const nameB = b.fullName.toLowerCase();
+				return nameA.localeCompare(nameB);
+			});
+	}, [agents]);
+
 	// Format date to readable format
 	const formatDate = (dateString) => {
 		const options = { year: 'numeric', month: 'short', day: 'numeric' };
@@ -81,6 +97,41 @@ const AgentsTable = () => {
 			</HStack>
 		);
 	};
+
+	// Custom sort function for full name
+	const fullNameSortFunction = (event) => {
+		const sorted = [...event.data].sort((a, b) => {
+			const nameA = `${a.firstName} ${a.lastName}`.toLowerCase();
+			const nameB = `${b.firstName} ${b.lastName}`.toLowerCase();
+			return event.order === 1 
+				? nameA.localeCompare(nameB)
+				: nameB.localeCompare(nameA);
+		});
+		return sorted;
+	};
+
+	// Filter header component
+	const filterHeader = (
+		<Box mb={4}>
+			<InputGroup>
+				<InputLeftElement pointerEvents="none">
+					<SearchIcon color="gray.400" />
+				</InputLeftElement>
+				<Input
+					placeholder="Search by name, email, or phone..."
+					value={globalFilter}
+					onChange={(e) => setGlobalFilter(e.target.value)}
+					borderRadius="md"
+					border="1px solid"
+					borderColor="gray.300"
+					_focus={{
+						borderColor: "blue.500",
+						boxShadow: "0 0 0 1px blue.500"
+					}}
+				/>
+			</InputGroup>
+		</Box>
+	);
 
 	// Format apartment count with badge
 	const apartmentCountTemplate = (rowData) => {
@@ -175,8 +226,9 @@ const AgentsTable = () => {
 
 						<CardBody display={"block"}>
 							<Box borderRadius="xl" overflow="hidden" border="1px solid" borderColor="gray.200">
+								{filterHeader}
 								<DataTable
-									value={agents}
+									value={sortedAgents}
 									paginator
 									rows={10}
 									rowsPerPageOptions={[5, 10, 25, 50]}
@@ -186,14 +238,19 @@ const AgentsTable = () => {
 									rowHover
 									scrollable
 									scrollHeight="500px"
+									globalFilter={globalFilter}
+									filterDisplay="row"
 								>
 									<Column
 										sortable
-										field="firstName"
+										sortFunction={fullNameSortFunction}
+										field="fullName"
 										header="Agent"
 										body={fullNameTemplate}
 										style={{ width: "30%", padding: "16px" }}
 										headerStyle={{ backgroundColor: "#f8f9fa", fontWeight: "600", padding: "16px" }}
+										filter
+										filterPlaceholder="Search by name"
 									></Column>
 
 									<Column
@@ -202,6 +259,8 @@ const AgentsTable = () => {
 										header="Email"
 										style={{ width: "25%", padding: "16px" }}
 										headerStyle={{ backgroundColor: "#f8f9fa", fontWeight: "600", padding: "16px" }}
+										filter
+										filterPlaceholder="Search by email"
 									></Column>
 
 									<Column
@@ -210,6 +269,8 @@ const AgentsTable = () => {
 										header="Phone"
 										style={{ width: "15%", padding: "16px" }}
 										headerStyle={{ backgroundColor: "#f8f9fa", fontWeight: "600", padding: "16px" }}
+										filter
+										filterPlaceholder="Search by phone"
 									></Column>
 
 									<Column

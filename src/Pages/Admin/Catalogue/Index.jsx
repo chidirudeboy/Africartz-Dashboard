@@ -104,8 +104,14 @@ const Catalogue = () => {
 	};
 
 	const handleCopyAllLinks = async () => {
-		const links = apartments.map((apt) => apt.link).filter(Boolean);
-		if (links.length === 0) {
+		const linksWithInfo = apartments
+			.filter((apt) => apt.link)
+			.map((apt) => {
+				// Format: Apartment Name - Link
+				return `${apt.name || 'Apartment'} - ${apt.link}`;
+			});
+		
+		if (linksWithInfo.length === 0) {
 			toast({
 				title: "No links available",
 				status: "warning",
@@ -116,10 +122,12 @@ const Catalogue = () => {
 		}
 
 		try {
-			await navigator.clipboard.writeText(links.join("\n"));
+			// Join with double newline for better spacing when copying
+			const formattedLinks = linksWithInfo.join("\n\n");
+			await navigator.clipboard.writeText(formattedLinks);
 			toast({
 				title: "Links copied",
-				description: `${links.length} links copied to clipboard`,
+				description: `${linksWithInfo.length} links copied to clipboard`,
 				status: "success",
 				duration: 3000,
 				isClosable: true,

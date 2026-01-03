@@ -72,7 +72,8 @@ const ReservationsIndex = () => {
 			}
 
 			const data = await response.json();
-			setReservations(data.data?.reservations || []);
+			const reservationsData = data.data?.reservations || [];
+			setReservations(reservationsData);
 			setPagination(data.data?.pagination || { page: 1, pages: 1, total: 0 });
 		} catch (err) {
 			setError(err.message);
@@ -162,6 +163,8 @@ const ReservationsIndex = () => {
 	};
 
 	const agentTemplate = (rowData) => {
+		const phoneNumber = rowData.agentId?.phone;
+		
 		return (
 			<HStack spacing={2}>
 				<Avatar size="xs" name={`${rowData.agentId?.firstName} ${rowData.agentId?.lastName}`} />
@@ -170,7 +173,10 @@ const ReservationsIndex = () => {
 						{rowData.agentId?.firstName} {rowData.agentId?.lastName}
 					</Text>
 					<Text fontSize="xs" color="gray.500">
-						{rowData.agentId?.email}
+						{rowData.agentId?.email || 'N/A'}
+					</Text>
+					<Text fontSize="xs" color="gray.500">
+						{phoneNumber ? (phoneNumber.toString().startsWith('+') ? phoneNumber : `+${phoneNumber}`) : 'N/A'}
 					</Text>
 				</VStack>
 			</HStack>

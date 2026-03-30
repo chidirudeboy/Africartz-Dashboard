@@ -22,9 +22,18 @@ import {
   CardBody,
   Heading,
   ButtonGroup,
-  SimpleGrid
+  SimpleGrid,
+  Modal,
+  ModalOverlay,
+  ModalContent,
+  ModalHeader,
+  ModalBody,
+  ModalFooter,
+  ModalCloseButton,
+  Textarea,
+  useToast
 } from '@chakra-ui/react';
-import { AdminGetAllBookingsAPI } from '../../../Endpoints';
+import { AdminGetAllBookingsAPI, AdminReleaseBookingPayoutAPI } from '../../../Endpoints';
 
 const AllBookings = () => {
   const [bookings, setBookings] = useState([]);
@@ -43,6 +52,11 @@ const AllBookings = () => {
     pages: 1,
     total: 0
   });
+  const [releaseModalOpen, setReleaseModalOpen] = useState(false);
+  const [selectedBooking, setSelectedBooking] = useState(null);
+  const [releaseReason, setReleaseReason] = useState('');
+  const [releasing, setReleasing] = useState(false);
+  const toast = useToast();
 
 
   useEffect(() => {
@@ -108,6 +122,14 @@ const AllBookings = () => {
     return colors[status] || 'gray';
   };
 
+  const getPayoutStatusColor = (status) => {
+    const colors = {
+      'held': 'orange',
+      'released': 'green'
+    };
+    return colors[status] || 'gray';
+  };
+
   const formatCurrency = (amount) => {
     return new Intl.NumberFormat('en-NG', {
       style: 'currency',
@@ -121,6 +143,71 @@ const AllBookings = () => {
       month: 'short',
       day: 'numeric'
     });
+  };
+
+  const openReleaseModal = (booking) => {
+    setSelectedBooking(booking);
+    setReleaseReason('');
+    setReleaseModalOpen(true);
+  };
+
+  const closeReleaseModal = () => {
+    if (releasing) return;
+    setReleaseModalOpen(false);
+    setSelectedBooking(null);
+    setReleaseReason('');
+  };
+
+  const handleAdminRelease = async () => {
+    if (!selectedBooking?._id) return;
+    if (!releaseReason.trim()) {
+      toast({
+        title: 'Reason required',
+        description: 'Please provide a reason for releasing this payout.',
+        status: 'warning',
+        duration: 4000,
+        isClosable: true
+      });
+      return;
+    }
+
+    try {
+      setReleasing(true);
+      const token = localStorage.getItem('authToken');
+      const response = await fetch(AdminReleaseBookingPayoutAPI(selectedBooking._id), {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ reason: releaseReason.trim() })
+      });
+
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        throw new Error(data?.message || 'Failed to release payout');
+      }
+
+      toast({
+        title: 'Payout released',
+        description: 'Funds have been released to the eligible agent.',
+        status: 'success',
+        duration: 4000,
+        isClosable: true
+      });
+      closeReleaseModal();
+      fetchAllBookings();
+    } catch (err) {
+      toast({
+        title: 'Release failed',
+        description: err.message || 'Unable to release payout',
+        status: 'error',
+        duration: 5000,
+        isClosable: true
+      });
+    } finally {
+      setReleasing(false);
+    }
   };
 
   if (loading && (!bookings || bookings.length === 0)) {
@@ -232,6 +319,10 @@ const AllBookings = () => {
                       <Th>Check-out</Th>
                       <Th>Amount</Th>
                       <Th>Status</Th>
+                      <Th>Payout</Th>
+                      <Th>Released By</Th>
+                      <Th>Release Reason</Th>
+                      <Th>Action</Th>
                       <Th>Created</Th>
                     </Tr>
                   </Thead>
@@ -289,6 +380,27 @@ const AllBookings = () => {
                           <Badge colorScheme={getStatusColor(booking.status || 'pending')} size="sm">
                             {booking.status || 'N/A'}
                           </Badge>
+                        </Td>
+                        <Td>
+                          <Badge colorScheme={getPayoutStatusColor(booking.payoutStatus || 'held')} size="sm">
+                            {booking.payoutStatus || 'held'}
+                          </Badge>
+                        </Td>
+                        <Td fontSize="sm">
+                          {booking.payoutReleasedByAdminId?.email || booking.payoutReleasedByAdminId || 'N/A'}
+                        </Td>
+                        <Td fontSize="sm" maxW="220px">
+                          {booking.payoutReleaseReason || 'N/A'}
+                        </Td>
+                        <Td>
+                          <Button
+                            size="xs"
+                            colorScheme="blue"
+                            isDisabled={booking.payoutStatus === 'released'}
+                            onClick={() => openReleaseModal(booking)}
+                          >
+                            Release
+                          </Button>
                         </Td>
                         <Td fontSize="sm">{booking.createdAt ? formatDate(booking.createdAt) : 'N/A'}</Td>
                       </Tr>
@@ -359,6 +471,45 @@ const AllBookings = () => {
           </Box>
         )}
       </VStack>
+
+      <Modal isOpen={releaseModalOpen} onClose={closeReleaseModal} isCentered>
+        <ModalOverlay />
+        <ModalContent>
+          <ModalHeader>Release Payout</ModalHeader>
+          <ModalCloseButton />
+          <ModalBody>
+            <VStack align="stretch" spacing={3}>
+              <Text fontSize="sm" color="gray.600">
+                You are about to release payout for booking{' '}
+                <Text as="span" fontWeight="bold">
+                  {selectedBooking?._id?.slice(-8) || 'N/A'}
+                </Text>.
+              </Text>
+              <Box>
+                <Text fontSize="sm" mb={2}>Reason</Text>
+                <Textarea
+                  value={releaseReason}
+                  onChange={(e) => setReleaseReason(e.target.value)}
+                  placeholder="Provide a short reason for this admin release"
+                  resize="vertical"
+                />
+              </Box>
+            </VStack>
+          </ModalBody>
+          <ModalFooter>
+            <Button variant="ghost" mr={3} onClick={closeReleaseModal} isDisabled={releasing}>
+              Cancel
+            </Button>
+            <Button
+              colorScheme="blue"
+              onClick={handleAdminRelease}
+              isLoading={releasing}
+            >
+              Release Payout
+            </Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
     </Box>
   );
 };

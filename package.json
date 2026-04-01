@@ -41,6 +41,7 @@
 	},
 	"scripts": {
 		"start": "react-scripts start",
+		"dev": "react-scripts start",
 		"start:dev": "react-scripts start",
 		"start:prod-api": "cp .env .env.development.local && react-scripts start",
 		"start:staging": "REACT_APP_ENVIRONMENT=staging react-scripts start",

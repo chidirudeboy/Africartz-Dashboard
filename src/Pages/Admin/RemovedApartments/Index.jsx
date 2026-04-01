@@ -44,6 +44,7 @@ import {
 	AdminGetRemovedApartmentsAPI,
 	AdminGetApprovedApartmentByIdAPI,
 } from "../../../Endpoints";
+import { formatPhoneNumber } from "../../../utils/phone";
 
 const RemovedApartments = () => {
 	const [loading, setLoading] = useState(false);
@@ -83,7 +84,7 @@ const RemovedApartments = () => {
 					apartmentAddress: `${apt.address}, ${apt.city}, ${apt.state}`,
 					agentName: apt.agentId ? `${apt.agentId.firstName} ${apt.agentId.lastName}` : "No Agent",
 					agentEmail: apt.agentId?.email || "N/A",
-					agentPhone: apt.agentId?.phone ? `+${apt.agentId.phone}` : "N/A",
+					agentPhone: formatPhoneNumber(apt.agentId?.phone),
 					status: apt.status,
 					removedAt: apt.statusHistory?.find(h => h.status === "removed")?.changedAt || apt.lastReviewedAt || apt.updatedAt,
 					removedBy: apt.lastReviewedBy || "N/A",
@@ -565,8 +566,8 @@ const RemovedApartments = () => {
 												{selectedApartment.contact_details && (
 													<VStack align="stretch" spacing={3}>
 														<Text><strong>Contact Person:</strong> {selectedApartment.contact_details.contactPersonName || "N/A"}</Text>
-														<Text><strong>Phone:</strong> {selectedApartment.contact_details.phone || "N/A"}</Text>
-														<Text><strong>Alternative Phone:</strong> {selectedApartment.contact_details.alternativePhone || "N/A"}</Text>
+														<Text><strong>Phone:</strong> {formatPhoneNumber(selectedApartment.contact_details.phone)}</Text>
+														<Text><strong>Alternative Phone:</strong> {formatPhoneNumber(selectedApartment.contact_details.alternativePhone)}</Text>
 														<Text><strong>Emergency Contact:</strong> {selectedApartment.contact_details.emergencyContact || "N/A"}</Text>
 													</VStack>
 												)}
@@ -725,4 +726,3 @@ const RemovedApartments = () => {
 };
 
 export default RemovedApartments;
-

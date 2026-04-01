@@ -68,15 +68,18 @@ import axios from "axios";
 import {
 	AdminGetApprovedApartmentsAPI,
 	AdminGetApprovedApartmentByIdAPI,
+	AdminToggleApartmentVerificationAPI,
 	AdminUpdateApartmentAPI,
 	AdminRemoveApartmentAPI,
 } from "../../../Endpoints";
 import { APARTMENT_ENDPOINTS } from "../../../api/endpoints";
+import { formatPhoneNumber } from "../../../utils/phone";
 import { createUploadService } from "../../../utils/uploadService";
 
 const ApprovedApartments = () => {
 	const [loading, setLoading] = useState(false);
 	const [approvedApartments, setApprovedApartments] = useState([]);
+	const [verificationFilter, setVerificationFilter] = useState("all");
 	const [selectedApartment, setSelectedApartment] = useState(null);
 	const [apartmentDetailsLoading, setApartmentDetailsLoading] = useState(null);
 	const [selectedMedia, setSelectedMedia] = useState(null);
@@ -97,8 +100,11 @@ const ApprovedApartments = () => {
 	const { isOpen: isRemoveDialogOpen, onOpen: onRemoveDialogOpen, onClose: onRemoveDialogClose } = useDisclosure();
 	const cancelRef = useRef();
 	const [removingApartmentId, setRemovingApartmentId] = useState(null);
+	const [verifyingApartmentId, setVerifyingApartmentId] = useState(null);
 	const [apartmentToRemove, setApartmentToRemove] = useState(null);
 	const [removeReason, setRemoveReason] = useState("");
+	const [verificationNote, setVerificationNote] = useState("");
+	const [apartmentToVerify, setApartmentToVerify] = useState(null);
 	const toast = useToast();
 	const [isSeasonalModalOpen, setSeasonalModalOpen] = useState(false);
 	const [seasonalFormData, setSeasonalFormData] = useState({ name: "", additionalFee: "", startDate: "", endDate: "", isActive: true });
@@ -106,6 +112,7 @@ const ApprovedApartments = () => {
 	const [isBedroomModalOpen, setBedroomModalOpen] = useState(false);
 	const [bedroomFormData, setBedroomFormData] = useState({ bedrooms: "", price: "", isActive: true });
 	const [editingBedroomIndex, setEditingBedroomIndex] = useState(null);
+	const { isOpen: isVerificationDialogOpen, onOpen: onVerificationDialogOpen, onClose: onVerificationDialogClose } = useDisclosure();
 
 	const fetchApprovedApartments = async () => {
 		setLoading(true);
@@ -128,7 +135,7 @@ const ApprovedApartments = () => {
 					apartmentAddress: `${apt.address}, ${apt.city}, ${apt.state}`,
 					agentName: apt.agentId ? `${apt.agentId.firstName} ${apt.agentId.lastName}` : "No Agent",
 					agentEmail: apt.agentId?.email || "N/A",
-					agentPhone: apt.agentId?.phone ? `+${apt.agentId.phone}` : "N/A",
+					agentPhone: formatPhoneNumber(apt.agentId?.phone),
 					status: apt.status,
 					approvedAt: apt.statusHistory?.find(h => h.status === "approved")?.timestamp || apt.updatedAt,
 					approvedBy: apt.statusHistory?.find(h => h.status === "approved")?.updatedBy || "N/A",
@@ -137,7 +144,8 @@ const ApprovedApartments = () => {
 					guests: apt.guests,
 					defaultStayFee: apt.defaultStayFee,
 					city: apt.city,
-					state: apt.state
+					state: apt.state,
+					isVerified: Boolean(apt.isVerified)
 				}));
 				setApprovedApartments(mapped);
 			} else {
@@ -1207,7 +1215,7 @@ const ApprovedApartments = () => {
 						{rowData.apartmentName}
 					</Text>
 					<Text fontSize="xs" color="gray.500">
-						{rowData.city}, {rowData.state}
+						{rowData.apartmentAddress}
 					</Text>
 				</VStack>
 			</HStack>
@@ -1251,9 +1259,16 @@ const ApprovedApartments = () => {
 
 	const statusTemplate = (rowData) => {
 		return (
-			<Badge colorScheme="green" variant="subtle" borderRadius="full" px={3} py={1}>
-				{rowData.status}
-			</Badge>
+			<HStack spacing={2}>
+				<Badge colorScheme="green" variant="subtle" borderRadius="full" px={3} py={1}>
+					{rowData.status}
+				</Badge>
+				{rowData.isVerified && (
+					<Badge colorScheme="yellow" variant="solid" borderRadius="full" px={3} py={1}>
+						Verified
+					</Badge>
+				)}
+			</HStack>
 		);
 	};
 
@@ -1269,6 +1284,70 @@ const ApprovedApartments = () => {
 		setApartmentToRemove({ id: apartmentId, name: apartmentName });
 		setRemoveReason("");
 		onRemoveDialogOpen();
+	};
+
+	const handleVerificationAction = (rowData) => {
+		setApartmentToVerify(rowData);
+		setVerificationNote("");
+		onVerificationDialogOpen();
+	};
+
+	const confirmVerificationAction = async () => {
+		if (!apartmentToVerify) return;
+
+		setVerifyingApartmentId(apartmentToVerify.id);
+		try {
+			const authToken = localStorage.getItem("authToken");
+			if (!authToken) throw new Error("No authentication token found");
+
+			const nextVerificationState = !apartmentToVerify.isVerified;
+
+			await axios.patch(
+				AdminToggleApartmentVerificationAPI(apartmentToVerify.id),
+				{
+					isVerified: nextVerificationState,
+					note: verificationNote.trim(),
+				},
+				{
+					headers: {
+						"Content-Type": "application/json",
+						Authorization: `Bearer ${authToken}`,
+					},
+				}
+			);
+
+			toast({
+				title: nextVerificationState ? "Apartment verified" : "Apartment unverified",
+				description: `${apartmentToVerify.apartmentName} has been ${nextVerificationState ? "marked as verified" : "removed from verified apartments"}.`,
+				status: "success",
+				duration: 4000,
+				isClosable: true,
+			});
+
+			if (selectedApartment?._id === apartmentToVerify.id) {
+				setSelectedApartment((prev) => prev ? {
+					...prev,
+					isVerified: nextVerificationState,
+					verificationNote: verificationNote.trim() || prev.verificationNote,
+				} : prev);
+			}
+
+			fetchApprovedApartments();
+			onVerificationDialogClose();
+			setApartmentToVerify(null);
+			setVerificationNote("");
+		} catch (error) {
+			console.error("Error updating apartment verification:", error);
+			toast({
+				title: "Error",
+				description: error.response?.data?.error || error.response?.data?.message || error.message || "Failed to update apartment verification",
+				status: "error",
+				duration: 5000,
+				isClosable: true,
+			});
+		} finally {
+			setVerifyingApartmentId(null);
+		}
 	};
 
 	const confirmRemoveApartment = async () => {
@@ -1344,6 +1423,17 @@ const ApprovedApartments = () => {
 					Edit
 				</Button>
 				<Button
+					colorScheme={rowData.isVerified ? "gray" : "yellow"}
+					size="sm"
+					variant="outline"
+					leftIcon={<Icon as={FaCheck} />}
+					isLoading={verifyingApartmentId === rowData.id}
+					onClick={() => handleVerificationAction(rowData)}
+					borderRadius="full"
+				>
+					{rowData.isVerified ? "Unverify" : "Verify"}
+				</Button>
+				<Button
 					colorScheme="red"
 					size="sm"
 					variant="outline"
@@ -1363,6 +1453,12 @@ const ApprovedApartments = () => {
 	const totalRevenue = approvedApartments.reduce((sum, apt) => sum + (apt.defaultStayFee || 0), 0);
 	const averagePrice = totalApartments > 0 ? totalRevenue / totalApartments : 0;
 	const uniqueAgents = new Set(approvedApartments.map(apt => apt.agentEmail)).size;
+	const verifiedApartments = approvedApartments.filter((apt) => apt.isVerified).length;
+	const displayedApartments = approvedApartments.filter((apt) => {
+		if (verificationFilter === "verified") return apt.isVerified;
+		if (verificationFilter === "unverified") return !apt.isVerified;
+		return true;
+	});
 
 	// Get current pricing data - ensure it's always an array
 	const currentSeasonalPricing = (() => {
@@ -1398,6 +1494,16 @@ const ApprovedApartments = () => {
 
 	return (
 		<Flex flexDirection="column" pt={{ base: "120px", md: "75px" }}>
+			<style>
+				{`
+					.verified-apartment-row {
+						background-color: #fffbeb !important;
+					}
+					.verified-apartment-row td:first-child {
+						border-left: 4px solid #d69e2e;
+					}
+				`}
+			</style>
 			{loading ? (
 				<Flex justify="center" align="center" h="30rem" w="100%">
 					<Spinner size="xl" />
@@ -1405,7 +1511,7 @@ const ApprovedApartments = () => {
 			) : (
 				<Fragment>
 					{/* Statistics Cards */}
-					<SimpleGrid columns={{ sm: 1, md: 2, xl: 4 }} spacing="24px" mb="30px">
+					<SimpleGrid columns={{ sm: 1, md: 2, xl: 5 }} spacing="24px" mb="30px">
 						<Card p="20px" bg="linear-gradient(135deg, #667eea 0%, #764ba2 100%)" color="white">
 							<Stat>
 								<StatLabel fontSize="md" opacity={0.8}>Total Approved</StatLabel>
@@ -1437,6 +1543,14 @@ const ApprovedApartments = () => {
 								<StatHelpText fontSize="sm" opacity={0.7}>Per apartment</StatHelpText>
 							</Stat>
 						</Card>
+
+						<Card p="20px" bg="linear-gradient(135deg, #ecc94b 0%, #d69e2e 100%)" color="white">
+							<Stat>
+								<StatLabel fontSize="md" opacity={0.8}>Verified</StatLabel>
+								<StatNumber fontSize="2xl" fontWeight="bold">{verifiedApartments}</StatNumber>
+								<StatHelpText fontSize="sm" opacity={0.7}>Field-inspected apartments</StatHelpText>
+							</Stat>
+						</Card>
 					</SimpleGrid>
 
 					{/* Main Table Card */}
@@ -1456,8 +1570,37 @@ const ApprovedApartments = () => {
 
 						<CardBody display={"block"}>
 							<Box borderRadius="xl" overflow="hidden" border="1px solid" borderColor="gray.200">
+								<HStack spacing={3} mb={4} flexWrap="wrap" px={1} pt={1}>
+									<Button
+										size="sm"
+										variant={verificationFilter === "all" ? "solid" : "outline"}
+										colorScheme="blue"
+										onClick={() => setVerificationFilter("all")}
+									>
+										All Apartments
+									</Button>
+									<Button
+										size="sm"
+										variant={verificationFilter === "verified" ? "solid" : "outline"}
+										colorScheme="yellow"
+										onClick={() => setVerificationFilter("verified")}
+									>
+										Verified
+									</Button>
+									<Button
+										size="sm"
+										variant={verificationFilter === "unverified" ? "solid" : "outline"}
+										colorScheme="gray"
+										onClick={() => setVerificationFilter("unverified")}
+									>
+										Unverified
+									</Button>
+									<Text fontSize="sm" color="gray.500">
+										Showing {displayedApartments.length} of {approvedApartments.length}
+									</Text>
+								</HStack>
 								<DataTable
-									value={approvedApartments}
+									value={displayedApartments}
 									paginator
 									rows={10}
 									rowsPerPageOptions={[5, 10, 25, 50]}
@@ -1467,7 +1610,8 @@ const ApprovedApartments = () => {
 									rowHover
 									scrollable
 									scrollHeight="600px"
-									globalFilterFields={['apartmentName', 'agentName', 'agentEmail', 'city', 'state']}
+									globalFilterFields={['apartmentName', 'apartmentAddress', 'agentName', 'agentEmail', 'city', 'state']}
+									rowClassName={(rowData) => (rowData.isVerified ? "verified-apartment-row" : "")}
 								>
 									<Column
 										field="sn"
@@ -1483,7 +1627,17 @@ const ApprovedApartments = () => {
 										sortable
 										filter
 										filterPlaceholder="Search by name"
-										style={{ width: "25%", padding: "16px" }}
+										style={{ width: "22%", padding: "16px" }}
+										headerStyle={{ backgroundColor: "#f8f9fa", fontWeight: "600", padding: "16px" }}
+									/>
+
+									<Column
+										field="apartmentAddress"
+										header="Address"
+										sortable
+										filter
+										filterPlaceholder="Search by address"
+										style={{ width: "20%", padding: "16px" }}
 										headerStyle={{ backgroundColor: "#f8f9fa", fontWeight: "600", padding: "16px" }}
 									/>
 
@@ -1494,7 +1648,7 @@ const ApprovedApartments = () => {
 										sortable
 										filter
 										filterPlaceholder="Search by agent"
-										style={{ width: "20%", padding: "16px" }}
+										style={{ width: "18%", padding: "16px" }}
 										headerStyle={{ backgroundColor: "#f8f9fa", fontWeight: "600", padding: "16px" }}
 									/>
 
@@ -1575,15 +1729,36 @@ const ApprovedApartments = () => {
 									{selectedApartment?.apartmentName || "Apartment Details"}
 								</Text>
 								{selectedApartment && (
-									<Badge
-										colorScheme="green"
-										fontSize="sm"
-									>
-										{selectedApartment.status?.toUpperCase()}
-									</Badge>
+									<HStack spacing={2}>
+										<Badge
+											colorScheme="green"
+											fontSize="sm"
+										>
+											{selectedApartment.status?.toUpperCase()}
+										</Badge>
+										{selectedApartment.isVerified && (
+											<Badge colorScheme="yellow" fontSize="sm">
+												VERIFIED
+											</Badge>
+										)}
+									</HStack>
 								)}
 							</VStack>
 							<HStack spacing={2}>
+								<Button
+									size="sm"
+									colorScheme={selectedApartment?.isVerified ? "gray" : "yellow"}
+									variant="outline"
+									leftIcon={<Icon as={FaCheck} />}
+									isLoading={verifyingApartmentId === selectedApartment?._id}
+									onClick={() => handleVerificationAction({
+										id: selectedApartment?._id,
+										apartmentName: selectedApartment?.apartmentName,
+										isVerified: Boolean(selectedApartment?.isVerified),
+									})}
+								>
+									{selectedApartment?.isVerified ? "Unverify" : "Verify"}
+								</Button>
 								{!isEditMode ? (
 									<Button
 										size="sm"
@@ -2697,7 +2872,7 @@ const ApprovedApartments = () => {
 														<Text><strong>Role:</strong> {selectedApartment.contact_details?.contactPersonRole}</Text>
 														<Flex align="center">
 															<Icon as={FaPhoneAlt} color="green.500" mr={2} />
-															<Text><strong>Phone:</strong> {selectedApartment.contact_details?.phone}</Text>
+															<Text><strong>Phone:</strong> {formatPhoneNumber(selectedApartment.contact_details?.phone)}</Text>
 														</Flex>
 													</Stack>
 												</GridItem>
@@ -3169,6 +3344,50 @@ const ApprovedApartments = () => {
 								ml={3}
 							>
 								Remove Apartment
+							</Button>
+						</AlertDialogFooter>
+				</AlertDialogContent>
+			</AlertDialogOverlay>
+			</AlertDialog>
+
+			<AlertDialog
+				isOpen={isVerificationDialogOpen}
+				leastDestructiveRef={cancelRef}
+				onClose={onVerificationDialogClose}
+			>
+				<AlertDialogOverlay>
+					<AlertDialogContent>
+						<AlertDialogHeader fontSize="lg" fontWeight="bold">
+							{apartmentToVerify?.isVerified ? "Remove Verification" : "Verify Apartment"}
+						</AlertDialogHeader>
+
+						<AlertDialogBody>
+							<Text mb={4}>
+								{apartmentToVerify?.isVerified
+									? `This will remove the verified owner badge from ${apartmentToVerify?.apartmentName}.`
+									: `This will mark ${apartmentToVerify?.apartmentName} as a verified owner apartment after field inspection.`}
+							</Text>
+							<FormControl>
+								<FormLabel>Verification Note</FormLabel>
+								<Textarea
+									placeholder="Optional note for this verification change"
+									value={verificationNote}
+									onChange={(e) => setVerificationNote(e.target.value)}
+								/>
+							</FormControl>
+						</AlertDialogBody>
+
+						<AlertDialogFooter>
+							<Button ref={cancelRef} onClick={onVerificationDialogClose}>
+								Cancel
+							</Button>
+							<Button
+								colorScheme={apartmentToVerify?.isVerified ? "gray" : "yellow"}
+								onClick={confirmVerificationAction}
+								ml={3}
+								isLoading={verifyingApartmentId === apartmentToVerify?.id}
+							>
+								{apartmentToVerify?.isVerified ? "Unverify" : "Verify"}
 							</Button>
 						</AlertDialogFooter>
 					</AlertDialogContent>

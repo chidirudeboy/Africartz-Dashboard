@@ -33,6 +33,7 @@ import { LandlordsAPI } from "../../../Endpoints";
 import useNotifier from "../../../hooks/useNotifier.jsx";
 import { fetchAPI } from "../../../utils/fetchAPI";
 import { numberWithCommas } from "../../../utils/index.js";
+import { formatPhoneNumber } from "../../../utils/phone";
 import MiniStatistics from "./components/MiniStatistics";
 
 const Index = () => {
@@ -189,7 +190,7 @@ const Index = () => {
 									field="phone"
 									filter
 									header="Phone"
-									body={(row) => <> {row?.phone} </>}
+									body={(row) => <> {formatPhoneNumber(row?.phone)} </>}
 									style={{ width: "25%" }}
 								></Column>
 								<Column

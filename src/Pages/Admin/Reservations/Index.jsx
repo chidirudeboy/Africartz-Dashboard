@@ -29,6 +29,7 @@ import Card from "../../../components/Card/Card.js";
 import CardBody from "../../../components/Card/CardBody.js";
 import CardHeader from "../../../components/Card/CardHeader.js";
 import { AdminGetAllReservationsAPI } from '../../../Endpoints';
+import { formatPhoneNumber } from '../../../utils/phone';
 
 const ReservationsIndex = () => {
 	const [reservations, setReservations] = useState([]);
@@ -176,7 +177,7 @@ const ReservationsIndex = () => {
 						{rowData.agentId?.email || 'N/A'}
 					</Text>
 					<Text fontSize="xs" color="gray.500">
-						{phoneNumber ? (phoneNumber.toString().startsWith('+') ? phoneNumber : `+${phoneNumber}`) : 'N/A'}
+						{formatPhoneNumber(phoneNumber)}
 					</Text>
 				</VStack>
 			</HStack>

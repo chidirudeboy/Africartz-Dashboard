@@ -59,6 +59,7 @@ import {
 import Card from "../../../components/Card/Card.js";
 import CardBody from "../../../components/Card/CardBody.js";
 import CardHeader from "../../../components/Card/CardHeader.js";
+import { formatPhoneNumber } from "../../../utils/phone";
 import { FaWifi, FaPhoneAlt, FaWhatsapp, FaMapMarkerAlt, FaBed, FaBath, FaUsers, FaChevronLeft, FaChevronRight, FaTimes, FaRedo, FaClock, FaTrash, FaUpload, FaCheck, FaStar, FaRegStar } from "react-icons/fa";
 import React, { useState, useEffect, Fragment } from "react";
 import { Column } from "primereact/column";
@@ -152,7 +153,7 @@ const Index = () => {
 						apartmentAddress: `${apt.address || 'N/A'}, ${apt.city || 'N/A'}, ${apt.state || 'N/A'}`,
 						agentName: apt.agentId ? `${apt.agentId.firstName} ${apt.agentId.lastName}` : "No Agent",
 						agentEmail: apt.agentId?.email || "N/A",
-						agentPhone: apt.agentId?.phone ? `+${apt.agentId.phone}` : "N/A",
+						agentPhone: formatPhoneNumber(apt.agentId?.phone),
 						status: apt.status,
 						lastPushedAt: apt.lastPushedAt,
 						pushCount: apt.pushCount || 0,
@@ -176,7 +177,7 @@ const Index = () => {
 					apartmentAddress: `${apt.address || 'N/A'}, ${apt.city || 'N/A'}, ${apt.state || 'N/A'}`,
 					agentName: apt.agentId ? `${apt.agentId.firstName} ${apt.agentId.lastName}` : "No Agent",
 					agentEmail: apt.agentId?.email || "N/A",
-					agentPhone: apt.agentId?.phone ? `+${apt.agentId.phone}` : "N/A",
+					agentPhone: formatPhoneNumber(apt.agentId?.phone),
 					status: apt.status,
 					lastPushedAt: apt.lastPushedAt,
 					pushCount: apt.pushCount || 0,
@@ -2243,7 +2244,7 @@ const Index = () => {
 															<Text><strong>Role:</strong> {selectedApartment.contact_details?.contactPersonRole}</Text>
 															<Flex align="center">
 																<Icon as={FaPhoneAlt} color="green.500" mr={2} />
-																<Text><strong>Phone:</strong> {selectedApartment.contact_details?.phone}</Text>
+																<Text><strong>Phone:</strong> {formatPhoneNumber(selectedApartment.contact_details?.phone)}</Text>
 															</Flex>
 															<Flex align="center">
 																<Icon as={FaWhatsapp} color="green.500" mr={2} />

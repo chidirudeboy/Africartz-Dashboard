@@ -38,6 +38,14 @@ import {
 	Textarea,
 	FormControl,
 	FormLabel,
+	Input,
+	NumberInput,
+	NumberInputField,
+	NumberInputStepper,
+	NumberIncrementStepper,
+	NumberDecrementStepper,
+	CheckboxGroup,
+	Checkbox,
 	AlertDialog,
 	AlertDialogBody,
 	AlertDialogFooter,
@@ -50,9 +58,11 @@ import React, { useState, useEffect } from "react";
 import { Column } from "primereact/column";
 import { DataTable } from "primereact/datatable";
 import axios from "axios";
+import { formatPhoneNumber } from "../../../utils/phone";
 import {
 	AdminGetPendingApartmentsAPI,
 	AdminGetPendingApartmentByIdAPI,
+	AdminUpdateApartmentAPI,
 	AdminApprovedApartment,
 	AdminRejectApartment,
 } from "../../../Endpoints";
@@ -63,6 +73,9 @@ const Index = () => {
 	const [apartments, setApartments] = useState([]);
 	const [selectedApartment, setSelectedApartment] = useState(null);
 	const [apartmentDetailsLoading, setApartmentDetailsLoading] = useState(null);
+	const [isEditMode, setIsEditMode] = useState(false);
+	const [editedApartment, setEditedApartment] = useState(null);
+	const [updateLoading, setUpdateLoading] = useState(false);
 	const [rejectionReason, setRejectionReason] = useState("");
 	const [approvalNote, setApprovalNote] = useState("");
 	const [selectedMedia, setSelectedMedia] = useState(null);
@@ -96,7 +109,7 @@ const Index = () => {
 					apartmentAddress: `${apt.address}, ${apt.city}, ${apt.state}`,
 					agentName: apt.agentId ? `${apt.agentId.firstName} ${apt.agentId.lastName}` : "No Agent",
 					agentEmail: apt.agentId?.email || "N/A",
-					agentPhone: apt.agentId?.phone ? `+${apt.agentId.phone}` : "N/A",
+					agentPhone: formatPhoneNumber(apt.agentId?.phone),
 					status: apt.status,
 					submittedAt: apt.createdAt || apt.submittedAt || apt.updatedAt,
 				}));
@@ -133,9 +146,46 @@ const Index = () => {
 			});
 
 			if (response.data?.apartment) {
-				setSelectedApartment(response.data.apartment);
+				const apartmentData = { ...response.data.apartment };
+
+				if (apartmentData.amenities) {
+					if (Array.isArray(apartmentData.amenities)) {
+						if (apartmentData.amenities.length > 0 && typeof apartmentData.amenities[0] === "string") {
+							const firstItem = apartmentData.amenities[0].trim();
+							if (firstItem.startsWith("[") || firstItem.startsWith("{")) {
+								try {
+									const parsed = JSON.parse(apartmentData.amenities[0]);
+									apartmentData.amenities = Array.isArray(parsed) ? parsed : [parsed];
+								} catch (e) {
+									console.warn("Failed to parse amenities JSON, using raw array:", e);
+								}
+							}
+						}
+					} else if (typeof apartmentData.amenities === "string") {
+						const trimmed = apartmentData.amenities.trim();
+						if (trimmed.startsWith("[") || trimmed.startsWith("{")) {
+							try {
+								const parsed = JSON.parse(trimmed);
+								apartmentData.amenities = Array.isArray(parsed) ? parsed : [parsed];
+							} catch (e) {
+								console.warn("Failed to parse amenities string:", e);
+								apartmentData.amenities = [];
+							}
+						} else {
+							apartmentData.amenities = [apartmentData.amenities];
+						}
+					}
+				} else {
+					apartmentData.amenities = [];
+				}
+
+				if (!Array.isArray(apartmentData.amenities)) {
+					apartmentData.amenities = [];
+				}
+
+				setSelectedApartment(apartmentData);
 				onOpen();
-				console.log("Apartment details fetched successfully:", response.data.apartment);
+				console.log("Apartment details fetched successfully:", apartmentData);
 
 			} else {
 				throw new Error("Failed to fetch apartment details");
@@ -156,6 +206,140 @@ const Index = () => {
 
 	const handleViewDetails = (apartmentId) => {
 		fetchApartmentDetails(apartmentId);
+	};
+
+	const handleStartEdit = () => {
+		if (!selectedApartment) return;
+
+		setEditedApartment({
+			...selectedApartment,
+			optionalFees: selectedApartment.optionalFees || {},
+			contact_details: selectedApartment.contact_details || {},
+			accessDetails: selectedApartment.accessDetails || {},
+			amenities: Array.isArray(selectedApartment.amenities) ? [...selectedApartment.amenities] : [],
+			allowedReservations: Array.isArray(selectedApartment.allowedReservations)
+				? [...selectedApartment.allowedReservations]
+				: [],
+		});
+		setIsEditMode(true);
+	};
+
+	const handleCancelEdit = () => {
+		setIsEditMode(false);
+		setEditedApartment(null);
+	};
+
+	const handleSaveEdit = async () => {
+		if (!editedApartment || !selectedApartment) return;
+
+		setUpdateLoading(true);
+		try {
+			const authToken = localStorage.getItem("authToken");
+			if (!authToken) throw new Error("No authentication token found");
+
+			const updatePayload = {};
+
+			if (editedApartment.apartmentName !== selectedApartment.apartmentName) {
+				updatePayload.apartmentName = editedApartment.apartmentName;
+			}
+			if (editedApartment.description !== selectedApartment.description) {
+				updatePayload.description = editedApartment.description;
+			}
+			if (editedApartment.address !== selectedApartment.address) {
+				updatePayload.address = editedApartment.address;
+			}
+			if (editedApartment.city !== selectedApartment.city) {
+				updatePayload.city = editedApartment.city;
+			}
+			if (editedApartment.state !== selectedApartment.state) {
+				updatePayload.state = editedApartment.state;
+			}
+			if (editedApartment.bedrooms !== selectedApartment.bedrooms) {
+				updatePayload.bedrooms = editedApartment.bedrooms;
+			}
+			if (editedApartment.bathrooms !== selectedApartment.bathrooms) {
+				updatePayload.bathrooms = editedApartment.bathrooms;
+			}
+			if (editedApartment.beds !== selectedApartment.beds) {
+				updatePayload.beds = editedApartment.beds;
+			}
+			if (editedApartment.guests !== selectedApartment.guests) {
+				updatePayload.guests = editedApartment.guests;
+			}
+			if (editedApartment.defaultStayFee !== selectedApartment.defaultStayFee) {
+				updatePayload.defaultStayFee = editedApartment.defaultStayFee;
+			}
+			if (editedApartment.cautionFee !== selectedApartment.cautionFee) {
+				updatePayload.cautionFee = editedApartment.cautionFee;
+			}
+			if (JSON.stringify(editedApartment.optionalFees || {}) !== JSON.stringify(selectedApartment.optionalFees || {})) {
+				updatePayload.optionalFees = editedApartment.optionalFees || {};
+			}
+			if (JSON.stringify(editedApartment.contact_details || {}) !== JSON.stringify(selectedApartment.contact_details || {})) {
+				updatePayload.contact_details = editedApartment.contact_details || {};
+			}
+			if (JSON.stringify(editedApartment.accessDetails || {}) !== JSON.stringify(selectedApartment.accessDetails || {})) {
+				updatePayload.accessDetails = editedApartment.accessDetails || {};
+			}
+			if (JSON.stringify(editedApartment.amenities || []) !== JSON.stringify(selectedApartment.amenities || [])) {
+				updatePayload.amenities = editedApartment.amenities || [];
+			}
+			if (JSON.stringify(editedApartment.allowedReservations || []) !== JSON.stringify(selectedApartment.allowedReservations || [])) {
+				updatePayload.allowedReservations = editedApartment.allowedReservations || [];
+			}
+
+			if (Object.keys(updatePayload).length === 0) {
+				toast({
+					title: "No Changes",
+					description: "No apartment updates were made",
+					status: "info",
+					duration: 3000,
+					isClosable: true,
+				});
+				setIsEditMode(false);
+				return;
+			}
+
+			const formData = new FormData();
+			Object.entries(updatePayload).forEach(([key, value]) => {
+				if (value === undefined || value === null) return;
+				if (Array.isArray(value) || typeof value === "object") {
+					formData.append(key, JSON.stringify(value));
+					return;
+				}
+				formData.append(key, value.toString());
+			});
+
+			await axios.put(AdminUpdateApartmentAPI(selectedApartment._id), formData, {
+				headers: {
+					Authorization: `Bearer ${authToken}`,
+				},
+			});
+
+			toast({
+				title: "Apartment Updated",
+				description: "Pending apartment details were updated successfully",
+				status: "success",
+				duration: 4000,
+				isClosable: true,
+			});
+
+			await fetchApartmentDetails(selectedApartment._id);
+			fetchPendingApartments();
+			setIsEditMode(false);
+			setEditedApartment(null);
+		} catch (error) {
+			console.error("Error updating apartment:", error);
+			toast({
+				title: "Update Failed",
+				description: error.response?.data?.message || error.response?.data?.error || error.message,
+				status: "error",
+				duration: 5000,
+				isClosable: true,
+			});
+		} finally {
+			setUpdateLoading(false);
+		}
 	};
 
 	const handleStatusChange = async (apartmentId, action, note = null) => {
@@ -240,6 +424,13 @@ const Index = () => {
 		onApprovalDialogClose();
 	};
 
+	const reservationOptions = [
+		{ label: "Hourly", value: "hourly" },
+		{ label: "Overnight", value: "overnight" },
+		{ label: "Shortlet", value: "shortlet" },
+		{ label: "Daily", value: "daily" },
+	];
+
 	const openMediaViewer = (mediaUrl, mediaType, index) => {
 		// Combine all media into one array for navigation
 		const images = selectedApartment.media?.images?.map(img => ({ url: img, type: 'image' })) || [];
@@ -259,6 +450,11 @@ const Index = () => {
 		
 		setCurrentMediaIndex(newIndex);
 		setSelectedMedia(allMedia[newIndex]);
+	};
+
+	const handleCloseModal = () => {
+		handleCancelEdit();
+		onClose();
 	};
 
 
@@ -351,7 +547,7 @@ const Index = () => {
 			)}
 
 			{/* Apartment Details Modal */}
-			<Modal isOpen={isOpen} onClose={onClose} size="6xl">
+			<Modal isOpen={isOpen} onClose={handleCloseModal} size="6xl">
 				<ModalOverlay />
 				<ModalContent maxH="90vh" overflowY="auto">
 					<ModalHeader>
@@ -370,6 +566,11 @@ const Index = () => {
 									</Badge>
 								)}
 							</VStack>
+							{selectedApartment?.status === "pending" && !isEditMode && (
+								<Button colorScheme="blue" variant="outline" onClick={handleStartEdit}>
+									Edit Apartment
+								</Button>
+							)}
 						</Flex>
 					</ModalHeader>
 					<ModalCloseButton />
@@ -502,51 +703,160 @@ const Index = () => {
 														<Text fontSize="lg" fontWeight="bold" mb={3} color="#de9301">
 															Basic Information
 														</Text>
-														<Stack spacing={3}>
-															<Flex align="center">
-																<Icon as={FaMapMarkerAlt} color="red.500" mr={2} />
-																<Text>
-																	<strong>Address:</strong> {selectedApartment.address}, {selectedApartment.city}, {selectedApartment.state}
-																</Text>
-															</Flex>
-															<Flex align="center">
-																<Icon as={FaBed} color="blue.500" mr={2} />
-																<Text><strong>Bedrooms:</strong> {selectedApartment.bedrooms}</Text>
-															</Flex>
-															<Flex align="center">
-																<Icon as={FaBath} color="teal.500" mr={2} />
-																<Text><strong>Bathrooms:</strong> {selectedApartment.bathrooms}</Text>
-															</Flex>
-															<Flex align="center">
-																<Text><strong>Beds:</strong> {selectedApartment.beds}</Text>
-															</Flex>
-															<Flex align="center">
-																<Icon as={FaUsers} color="purple.500" mr={2} />
-																<Text><strong>Guests:</strong> {selectedApartment.guests}</Text>
-															</Flex>
-														</Stack>
+														{isEditMode && editedApartment ? (
+															<Stack spacing={4}>
+																<FormControl>
+																	<FormLabel>Apartment Name</FormLabel>
+																	<Input
+																		value={editedApartment.apartmentName || ""}
+																		onChange={(e) => setEditedApartment({ ...editedApartment, apartmentName: e.target.value })}
+																	/>
+																</FormControl>
+																<FormControl>
+																	<FormLabel>Description</FormLabel>
+																	<Textarea
+																		value={editedApartment.description || ""}
+																		onChange={(e) => setEditedApartment({ ...editedApartment, description: e.target.value })}
+																		rows={4}
+																	/>
+																</FormControl>
+																<FormControl>
+																	<FormLabel>Address</FormLabel>
+																	<Input
+																		value={editedApartment.address || ""}
+																		onChange={(e) => setEditedApartment({ ...editedApartment, address: e.target.value })}
+																	/>
+																</FormControl>
+																<Grid templateColumns={{ base: "1fr", md: "1fr 1fr" }} gap={4}>
+																	<FormControl>
+																		<FormLabel>City</FormLabel>
+																		<Input
+																			value={editedApartment.city || ""}
+																			onChange={(e) => setEditedApartment({ ...editedApartment, city: e.target.value })}
+																		/>
+																	</FormControl>
+																	<FormControl>
+																		<FormLabel>State</FormLabel>
+																		<Input
+																			value={editedApartment.state || ""}
+																			onChange={(e) => setEditedApartment({ ...editedApartment, state: e.target.value })}
+																		/>
+																	</FormControl>
+																</Grid>
+																<Grid templateColumns={{ base: "1fr", md: "repeat(2, 1fr)" }} gap={4}>
+																	<FormControl>
+																		<FormLabel>Bedrooms</FormLabel>
+																		<NumberInput value={editedApartment.bedrooms || 0} min={0} onChange={(value) => setEditedApartment({ ...editedApartment, bedrooms: parseInt(value) || 0 })}>
+																			<NumberInputField />
+																			<NumberInputStepper>
+																				<NumberIncrementStepper />
+																				<NumberDecrementStepper />
+																			</NumberInputStepper>
+																		</NumberInput>
+																	</FormControl>
+																	<FormControl>
+																		<FormLabel>Bathrooms</FormLabel>
+																		<NumberInput value={editedApartment.bathrooms || 0} min={0} onChange={(value) => setEditedApartment({ ...editedApartment, bathrooms: parseInt(value) || 0 })}>
+																			<NumberInputField />
+																			<NumberInputStepper>
+																				<NumberIncrementStepper />
+																				<NumberDecrementStepper />
+																			</NumberInputStepper>
+																		</NumberInput>
+																	</FormControl>
+																	<FormControl>
+																		<FormLabel>Beds</FormLabel>
+																		<NumberInput value={editedApartment.beds || 0} min={0} onChange={(value) => setEditedApartment({ ...editedApartment, beds: parseInt(value) || 0 })}>
+																			<NumberInputField />
+																			<NumberInputStepper>
+																				<NumberIncrementStepper />
+																				<NumberDecrementStepper />
+																			</NumberInputStepper>
+																		</NumberInput>
+																	</FormControl>
+																	<FormControl>
+																		<FormLabel>Guests</FormLabel>
+																		<NumberInput value={editedApartment.guests || 0} min={0} onChange={(value) => setEditedApartment({ ...editedApartment, guests: parseInt(value) || 0 })}>
+																			<NumberInputField />
+																			<NumberInputStepper>
+																				<NumberIncrementStepper />
+																				<NumberDecrementStepper />
+																			</NumberInputStepper>
+																		</NumberInput>
+																	</FormControl>
+																</Grid>
+															</Stack>
+														) : (
+															<Stack spacing={3}>
+																<Flex align="center">
+																	<Icon as={FaMapMarkerAlt} color="red.500" mr={2} />
+																	<Text>
+																		<strong>Address:</strong> {selectedApartment.address}, {selectedApartment.city}, {selectedApartment.state}
+																	</Text>
+																</Flex>
+																<Flex align="center">
+																	<Icon as={FaBed} color="blue.500" mr={2} />
+																	<Text><strong>Bedrooms:</strong> {selectedApartment.bedrooms}</Text>
+																</Flex>
+																<Flex align="center">
+																	<Icon as={FaBath} color="teal.500" mr={2} />
+																	<Text><strong>Bathrooms:</strong> {selectedApartment.bathrooms}</Text>
+																</Flex>
+																<Flex align="center">
+																	<Text><strong>Beds:</strong> {selectedApartment.beds}</Text>
+																</Flex>
+																<Flex align="center">
+																	<Icon as={FaUsers} color="purple.500" mr={2} />
+																	<Text><strong>Guests:</strong> {selectedApartment.guests}</Text>
+																</Flex>
+															</Stack>
+														)}
 													</Box>
 
 													<Box p={4} bg="gray.50" borderRadius="md">
 														<Text fontSize="lg" fontWeight="bold" mb={3} color="#de9301">
 															Description
 														</Text>
-														<Text>{selectedApartment.description || "No description available"}</Text>
+														{isEditMode && editedApartment ? (
+															<Textarea
+																value={editedApartment.description || ""}
+																onChange={(e) => setEditedApartment({ ...editedApartment, description: e.target.value })}
+																rows={5}
+															/>
+														) : (
+															<Text>{selectedApartment.description || "No description available"}</Text>
+														)}
 													</Box>
 
 													<Box p={4} bg="gray.50" borderRadius="md">
 														<Text fontSize="lg" fontWeight="bold" mb={3} color="#de9301">
 															Allowed Reservations
 														</Text>
-														<Wrap>
-															{selectedApartment.allowedReservations?.map((type, index) => (
-																<WrapItem key={index}>
-																	<Tag colorScheme="blue" textTransform="capitalize">
-																		{type}
-																	</Tag>
-																</WrapItem>
-															))}
-														</Wrap>
+														{isEditMode && editedApartment ? (
+															<CheckboxGroup
+																colorScheme="blue"
+																value={editedApartment.allowedReservations || []}
+																onChange={(value) => setEditedApartment({ ...editedApartment, allowedReservations: value })}
+															>
+																<Stack spacing={2}>
+																	{reservationOptions.map((option) => (
+																		<Checkbox key={option.value} value={option.value}>
+																			{option.label}
+																		</Checkbox>
+																	))}
+																</Stack>
+															</CheckboxGroup>
+														) : (
+															<Wrap>
+																{selectedApartment.allowedReservations?.map((type, index) => (
+																	<WrapItem key={index}>
+																		<Tag colorScheme="blue" textTransform="capitalize">
+																			{type}
+																		</Tag>
+																	</WrapItem>
+																))}
+															</Wrap>
+														)}
 													</Box>
 												</VStack>
 											</GridItem>
@@ -608,13 +918,33 @@ const Index = () => {
 											<Text fontSize="lg" fontWeight="bold" mb={4} color="#de9301">
 												Available Amenities
 											</Text>
-											<SimpleGrid columns={{ base: 2, md: 3, lg: 4 }} spacing={3}>
-												{selectedApartment.amenities?.map((amenity, index) => (
-													<Box key={index} p={3} bg="gray.50" borderRadius="md" textAlign="center">
-														<Text fontWeight="medium">{amenity}</Text>
-													</Box>
-												))}
-											</SimpleGrid>
+											{isEditMode && editedApartment ? (
+												<FormControl>
+													<FormLabel>Amenities</FormLabel>
+													<Textarea
+														value={(editedApartment.amenities || []).join(", ")}
+														onChange={(e) =>
+															setEditedApartment({
+																...editedApartment,
+																amenities: e.target.value
+																	.split(",")
+																	.map((item) => item.trim())
+																	.filter(Boolean),
+															})
+														}
+														rows={6}
+														placeholder="WiFi, Pool, Air Conditioning"
+													/>
+												</FormControl>
+											) : (
+												<SimpleGrid columns={{ base: 2, md: 3, lg: 4 }} spacing={3}>
+													{selectedApartment.amenities?.map((amenity, index) => (
+														<Box key={index} p={3} bg="gray.50" borderRadius="md" textAlign="center">
+															<Text fontWeight="medium">{amenity}</Text>
+														</Box>
+													))}
+												</SimpleGrid>
+											)}
 										</Box>
 									</TabPanel>
 
@@ -626,17 +956,42 @@ const Index = () => {
 													<Text fontSize="lg" fontWeight="bold" mb={3} color="#de9301">
 														Stay Fees
 													</Text>
-													<Stack spacing={2}>
-														<Text fontSize="2xl" fontWeight="bold" color="green.600">
-															₦{selectedApartment.defaultStayFee?.toLocaleString()}
-														</Text>
-														<Text fontSize="sm" color="gray.600">Default Stay Fee</Text>
-														<Divider />
-														<Text fontSize="lg" fontWeight="bold" color="red.600">
-															₦{selectedApartment.cautionFee?.toLocaleString()}
-														</Text>
-														<Text fontSize="sm" color="gray.600">Caution Fee</Text>
-													</Stack>
+													{isEditMode && editedApartment ? (
+														<Stack spacing={4}>
+															<FormControl>
+																<FormLabel>Default Stay Fee</FormLabel>
+																<NumberInput value={editedApartment.defaultStayFee || 0} min={0} onChange={(value) => setEditedApartment({ ...editedApartment, defaultStayFee: parseFloat(value) || 0 })}>
+																	<NumberInputField />
+																	<NumberInputStepper>
+																		<NumberIncrementStepper />
+																		<NumberDecrementStepper />
+																	</NumberInputStepper>
+																</NumberInput>
+															</FormControl>
+															<FormControl>
+																<FormLabel>Caution Fee</FormLabel>
+																<NumberInput value={editedApartment.cautionFee || 0} min={0} onChange={(value) => setEditedApartment({ ...editedApartment, cautionFee: parseFloat(value) || 0 })}>
+																	<NumberInputField />
+																	<NumberInputStepper>
+																		<NumberIncrementStepper />
+																		<NumberDecrementStepper />
+																	</NumberInputStepper>
+																</NumberInput>
+															</FormControl>
+														</Stack>
+													) : (
+														<Stack spacing={2}>
+															<Text fontSize="2xl" fontWeight="bold" color="green.600">
+																₦{selectedApartment.defaultStayFee?.toLocaleString()}
+															</Text>
+															<Text fontSize="sm" color="gray.600">Default Stay Fee</Text>
+															<Divider />
+															<Text fontSize="lg" fontWeight="bold" color="red.600">
+																₦{selectedApartment.cautionFee?.toLocaleString()}
+															</Text>
+															<Text fontSize="sm" color="gray.600">Caution Fee</Text>
+														</Stack>
+													)}
 												</Box>
 											</GridItem>
 											
@@ -645,17 +1000,52 @@ const Index = () => {
 													<Text fontSize="lg" fontWeight="bold" mb={3} color="#de9301">
 														Optional Fees
 													</Text>
-													<Stack spacing={2}>
-														{selectedApartment.optionalFees?.partyFee && (
-															<Text><strong>Party Fee:</strong> ₦{selectedApartment.optionalFees.partyFee.toLocaleString()}</Text>
-														)}
-														{selectedApartment.optionalFees?.movieShootFee && (
-															<Text><strong>Movie Shoot Fee:</strong> ₦{selectedApartment.optionalFees.movieShootFee.toLocaleString()}</Text>
-														)}
-														{selectedApartment.optionalFees?.photoShootFee && (
-															<Text><strong>Photo Shoot Fee:</strong> ₦{selectedApartment.optionalFees.photoShootFee.toLocaleString()}</Text>
-														)}
-													</Stack>
+													{isEditMode && editedApartment ? (
+														<Stack spacing={4}>
+															<FormControl>
+																<FormLabel>Party Fee</FormLabel>
+																<NumberInput value={editedApartment.optionalFees?.partyFee || 0} min={0} onChange={(value) => setEditedApartment({ ...editedApartment, optionalFees: { ...(editedApartment.optionalFees || {}), partyFee: parseFloat(value) || 0 } })}>
+																	<NumberInputField />
+																	<NumberInputStepper>
+																		<NumberIncrementStepper />
+																		<NumberDecrementStepper />
+																	</NumberInputStepper>
+																</NumberInput>
+															</FormControl>
+															<FormControl>
+																<FormLabel>Movie Shoot Fee</FormLabel>
+																<NumberInput value={editedApartment.optionalFees?.movieShootFee || 0} min={0} onChange={(value) => setEditedApartment({ ...editedApartment, optionalFees: { ...(editedApartment.optionalFees || {}), movieShootFee: parseFloat(value) || 0 } })}>
+																	<NumberInputField />
+																	<NumberInputStepper>
+																		<NumberIncrementStepper />
+																		<NumberDecrementStepper />
+																	</NumberInputStepper>
+																</NumberInput>
+															</FormControl>
+															<FormControl>
+																<FormLabel>Photo Shoot Fee</FormLabel>
+																<NumberInput value={editedApartment.optionalFees?.photoShootFee || 0} min={0} onChange={(value) => setEditedApartment({ ...editedApartment, optionalFees: { ...(editedApartment.optionalFees || {}), photoShootFee: parseFloat(value) || 0 } })}>
+																	<NumberInputField />
+																	<NumberInputStepper>
+																		<NumberIncrementStepper />
+																		<NumberDecrementStepper />
+																	</NumberInputStepper>
+																</NumberInput>
+															</FormControl>
+														</Stack>
+													) : (
+														<Stack spacing={2}>
+															{selectedApartment.optionalFees?.partyFee && (
+																<Text><strong>Party Fee:</strong> ₦{selectedApartment.optionalFees.partyFee.toLocaleString()}</Text>
+															)}
+															{selectedApartment.optionalFees?.movieShootFee && (
+																<Text><strong>Movie Shoot Fee:</strong> ₦{selectedApartment.optionalFees.movieShootFee.toLocaleString()}</Text>
+															)}
+															{selectedApartment.optionalFees?.photoShootFee && (
+																<Text><strong>Photo Shoot Fee:</strong> ₦{selectedApartment.optionalFees.photoShootFee.toLocaleString()}</Text>
+															)}
+														</Stack>
+													)}
 												</Box>
 											</GridItem>
 										</Grid>
@@ -667,22 +1057,47 @@ const Index = () => {
 											<Text fontSize="lg" fontWeight="bold" mb={4} color="#de9301">
 												Contact Information
 											</Text>
-											<Grid templateColumns={{ base: "1fr", md: "1fr 1fr" }} gap={6}>
-												<GridItem>
-													<Stack spacing={3}>
-														<Text><strong>Contact Person:</strong> {selectedApartment.contact_details?.contactPersonName}</Text>
-														<Text><strong>Role:</strong> {selectedApartment.contact_details?.contactPersonRole}</Text>
-														<Flex align="center">
-															<Icon as={FaPhoneAlt} color="green.500" mr={2} />
-															<Text><strong>Phone:</strong> {selectedApartment.contact_details?.phone}</Text>
-														</Flex>
-														<Flex align="center">
-															<Icon as={FaWhatsapp} color="green.500" mr={2} />
-															<Text><strong>WhatsApp:</strong> {selectedApartment.contact_details?.whatsappNumber}</Text>
-														</Flex>
-													</Stack>
-												</GridItem>
-											</Grid>
+											{isEditMode && editedApartment ? (
+												<Grid templateColumns={{ base: "1fr", md: "1fr 1fr" }} gap={6}>
+													<GridItem>
+														<Stack spacing={4}>
+															<FormControl>
+																<FormLabel>Contact Person</FormLabel>
+																<Input value={editedApartment.contact_details?.contactPersonName || ""} onChange={(e) => setEditedApartment({ ...editedApartment, contact_details: { ...(editedApartment.contact_details || {}), contactPersonName: e.target.value } })} />
+															</FormControl>
+															<FormControl>
+																<FormLabel>Role</FormLabel>
+																<Input value={editedApartment.contact_details?.contactPersonRole || ""} onChange={(e) => setEditedApartment({ ...editedApartment, contact_details: { ...(editedApartment.contact_details || {}), contactPersonRole: e.target.value } })} />
+															</FormControl>
+															<FormControl>
+																<FormLabel>Phone</FormLabel>
+																<Input value={editedApartment.contact_details?.phone || ""} onChange={(e) => setEditedApartment({ ...editedApartment, contact_details: { ...(editedApartment.contact_details || {}), phone: e.target.value } })} />
+															</FormControl>
+															<FormControl>
+																<FormLabel>WhatsApp</FormLabel>
+																<Input value={editedApartment.contact_details?.whatsappNumber || ""} onChange={(e) => setEditedApartment({ ...editedApartment, contact_details: { ...(editedApartment.contact_details || {}), whatsappNumber: e.target.value } })} />
+															</FormControl>
+														</Stack>
+													</GridItem>
+												</Grid>
+											) : (
+												<Grid templateColumns={{ base: "1fr", md: "1fr 1fr" }} gap={6}>
+													<GridItem>
+														<Stack spacing={3}>
+															<Text><strong>Contact Person:</strong> {selectedApartment.contact_details?.contactPersonName}</Text>
+															<Text><strong>Role:</strong> {selectedApartment.contact_details?.contactPersonRole}</Text>
+															<Flex align="center">
+																<Icon as={FaPhoneAlt} color="green.500" mr={2} />
+																<Text><strong>Phone:</strong> {formatPhoneNumber(selectedApartment.contact_details?.phone)}</Text>
+															</Flex>
+															<Flex align="center">
+																<Icon as={FaWhatsapp} color="green.500" mr={2} />
+																<Text><strong>WhatsApp:</strong> {selectedApartment.contact_details?.whatsappNumber}</Text>
+															</Flex>
+														</Stack>
+													</GridItem>
+												</Grid>
+											)}
 										</Box>
 									</TabPanel>
 
@@ -692,31 +1107,55 @@ const Index = () => {
 											<Text fontSize="lg" fontWeight="bold" mb={4} color="#de9301">
 												Access Details
 											</Text>
-											<Grid templateColumns={{ base: "1fr", md: "repeat(3, 1fr)" }} gap={4}>
-												<GridItem>
-													<Box p={3} bg="white" borderRadius="md" border="1px solid" borderColor="yellow.300">
-														<Flex align="center" mb={2}>
-															<Icon as={FaWifi} color="blue.500" mr={2} />
-															<Text fontWeight="bold">WiFi Code</Text>
-														</Flex>
-														<Text fontSize="lg" fontFamily="mono">{selectedApartment.accessDetails?.wifiCode}</Text>
-													</Box>
-												</GridItem>
-												<GridItem>
-													<Box p={3} bg="white" borderRadius="md" border="1px solid" borderColor="yellow.300">
-														<Text fontWeight="bold" mb={2}>Door Code</Text>
-														<Text fontSize="lg" fontFamily="mono">{selectedApartment.accessDetails?.doorCode}</Text>
-													</Box>
-												</GridItem>
-												<GridItem>
-													<Box p={3} bg="white" borderRadius="md" border="1px solid" borderColor="yellow.300">
-														<Text fontWeight="bold" mb={2}>Access Code</Text>
-														<Text fontSize="lg" fontFamily="mono">{selectedApartment.accessDetails?.accessCode}</Text>
-													</Box>
-												</GridItem>
-											</Grid>
+											{isEditMode && editedApartment ? (
+												<Grid templateColumns={{ base: "1fr", md: "repeat(3, 1fr)" }} gap={4}>
+													<GridItem>
+														<FormControl>
+															<FormLabel>WiFi Code</FormLabel>
+															<Input value={editedApartment.accessDetails?.wifiCode || ""} onChange={(e) => setEditedApartment({ ...editedApartment, accessDetails: { ...(editedApartment.accessDetails || {}), wifiCode: e.target.value } })} />
+														</FormControl>
+													</GridItem>
+													<GridItem>
+														<FormControl>
+															<FormLabel>Door Code</FormLabel>
+															<Input value={editedApartment.accessDetails?.doorCode || ""} onChange={(e) => setEditedApartment({ ...editedApartment, accessDetails: { ...(editedApartment.accessDetails || {}), doorCode: e.target.value } })} />
+														</FormControl>
+													</GridItem>
+													<GridItem>
+														<FormControl>
+															<FormLabel>Access Code</FormLabel>
+															<Input value={editedApartment.accessDetails?.accessCode || ""} onChange={(e) => setEditedApartment({ ...editedApartment, accessDetails: { ...(editedApartment.accessDetails || {}), accessCode: e.target.value } })} />
+														</FormControl>
+													</GridItem>
+												</Grid>
+											) : (
+												<Grid templateColumns={{ base: "1fr", md: "repeat(3, 1fr)" }} gap={4}>
+													<GridItem>
+														<Box p={3} bg="white" borderRadius="md" border="1px solid" borderColor="yellow.300">
+															<Flex align="center" mb={2}>
+																<Icon as={FaWifi} color="blue.500" mr={2} />
+																<Text fontWeight="bold">WiFi Code</Text>
+															</Flex>
+															<Text fontSize="lg" fontFamily="mono">{selectedApartment.accessDetails?.wifiCode}</Text>
+														</Box>
+													</GridItem>
+													<GridItem>
+														<Box p={3} bg="white" borderRadius="md" border="1px solid" borderColor="yellow.300">
+															<Text fontWeight="bold" mb={2}>Door Code</Text>
+															<Text fontSize="lg" fontFamily="mono">{selectedApartment.accessDetails?.doorCode}</Text>
+														</Box>
+													</GridItem>
+													<GridItem>
+														<Box p={3} bg="white" borderRadius="md" border="1px solid" borderColor="yellow.300">
+															<Text fontWeight="bold" mb={2}>Access Code</Text>
+															<Text fontSize="lg" fontFamily="mono">{selectedApartment.accessDetails?.accessCode}</Text>
+														</Box>
+													</GridItem>
+												</Grid>
+											)}
 										</Box>
 									</TabPanel>
+									
 
 								</TabPanels>
 							</ModalTabs>
@@ -727,10 +1166,24 @@ const Index = () => {
 
 					<ModalFooter>
 						<HStack spacing={3}>
-							<Button colorScheme="gray" onClick={onClose}>
+							<Button colorScheme="gray" onClick={handleCloseModal}>
 								Close
 							</Button>
-							{selectedApartment && selectedApartment.status === "pending" && (
+							{selectedApartment && selectedApartment.status === "pending" && isEditMode && (
+								<>
+									<Button variant="outline" onClick={handleCancelEdit}>
+										Cancel Edit
+									</Button>
+									<Button
+										colorScheme="blue"
+										onClick={handleSaveEdit}
+										isLoading={updateLoading}
+									>
+										Save Changes
+									</Button>
+								</>
+							)}
+							{selectedApartment && selectedApartment.status === "pending" && !isEditMode && (
 								<>
 									<Button
 										colorScheme="green"

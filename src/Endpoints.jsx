@@ -9,7 +9,10 @@ const endpoint = (path) => `${baseUrl}${path}`;
 
 export const AdminLoginAPI = endpoint("/auth/admin/login");
 export const AdminGetAgentAPI = endpoint("/admin/agents");
+export const AdminChangeAgentStatusAPI = (AGENT_ID) => endpoint(`/admin/agents/${AGENT_ID}/status`);
 export const AdminGetUsersAPI = endpoint("/admin/users");
+export const AdminChangeUserStatusAPI = (USER_ID) => endpoint(`/admin/users/${USER_ID}/status`);
+export const AdminGetAgentWalletsAPI = endpoint("/admin/agent-wallets");
 export const AdminGetStatsAPI = endpoint("/admin/stats");
 
 
@@ -19,6 +22,7 @@ export const AdminGetPendingApartmentByIdAPI = (APARTMENT_ID) => endpoint(`/apar
 export const AdminGetApprovedApartmentsAPI = endpoint("/admin/apartments/approved");
 export const AdminGetCatalogueAPI = endpoint("/admin/apartments/catalogue");
 export const AdminGetApprovedApartmentByIdAPI = (APARTMENT_ID) => endpoint(`/admin/apartments/approved/${APARTMENT_ID}`);
+export const AdminToggleApartmentVerificationAPI = (APARTMENT_ID) => endpoint(`/admin/apartments/${APARTMENT_ID}/verification`);
 export const AdminGetRemovedApartmentsAPI = endpoint("/admin/apartments/removed");
 export const AdminRemoveApartmentAPI = (APARTMENT_ID) => endpoint(`/admin/${APARTMENT_ID}/remove`);
 export const AdminGetResubmittedApartmentsAPI = endpoint("/admin/apartments/review");

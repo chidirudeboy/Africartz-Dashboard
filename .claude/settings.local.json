@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm run build:*)",
+      "Read(//Users/ikape/Desktop/AFRICARTZ STORE ENTERPRISE/AfriBooking-Agent-App/Screens/vendor/Apartment/**)",
+      "Read(//Users/ikape/Desktop/AFRICARTZ STORE ENTERPRISE/AfriBooking-Agent-App/utils/**)",
+      "Read(//Users/ikape/Desktop/AFRICARTZ STORE ENTERPRISE/AfriBooking-Agent-App/**)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

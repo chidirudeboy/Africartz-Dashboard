@@ -6,6 +6,7 @@ import {
   FaUser,
   FaUserTag,
   FaUsers,
+  FaWallet,
 } from "react-icons/fa6";
 import { MdAdminPanelSettings, MdApartment, MdRateReview, MdStorefront } from "react-icons/md";
 import { IoStatsChart } from "react-icons/io5";
@@ -135,6 +136,12 @@ const SidebarContent = ({ logoText, isCollapsed }) => {
               text="Owner/Agents"
               icon={<Icon as={FaUserTag} w={5} h={5} />}
               route="admin/agents"
+              isCollapsed={isCollapsed}
+            />
+            <SideBarLink
+              text="Agent Wallets"
+              icon={<Icon as={FaWallet} w={5} h={5} />}
+              route="/admin/agent-wallets"
               isCollapsed={isCollapsed}
             />
             <SideBarLink

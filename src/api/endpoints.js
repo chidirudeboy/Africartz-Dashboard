@@ -56,12 +56,28 @@ export const APARTMENT_ENDPOINTS = {
     list: endpoint("/admin/apartments/approved"),
     getById: withId("/admin/apartments/approved")
   },
+  resubmitted: {
+    list: endpoint("/admin/apartments/review"),
+    getById: (apartmentId) => endpoint(`/admin/apartments/review/${apartmentId}`)
+  },
   management: {
     list: endpoint("/admin/apartments"),
     create: endpoint("/admin/apartments/add"),
     getById: withId("/admin/apartments/details"),
     update: withId("/admin/apartments/details"),
     delete: withId("/admin/apartments/remove")
+  },
+  seasonalPricing: {
+    list: (apartmentId) => endpoint(`/admin/apartments/${apartmentId}/seasonal-pricing`),
+    create: (apartmentId) => endpoint(`/admin/apartments/${apartmentId}/seasonal-pricing`),
+    update: (apartmentId, pricingId) => endpoint(`/admin/apartments/${apartmentId}/seasonal-pricing/${pricingId}`),
+    delete: (apartmentId, pricingId) => endpoint(`/admin/apartments/${apartmentId}/seasonal-pricing/${pricingId}`)
+  },
+  bedroomPricing: {
+    list: (apartmentId) => endpoint(`/admin/apartments/${apartmentId}/bedroom-pricing`),
+    create: (apartmentId) => endpoint(`/admin/apartments/${apartmentId}/bedroom-pricing`),
+    update: (apartmentId, pricingId) => endpoint(`/admin/apartments/${apartmentId}/bedroom-pricing/${pricingId}`),
+    delete: (apartmentId, pricingId) => endpoint(`/admin/apartments/${apartmentId}/bedroom-pricing/${pricingId}`)
   }
 };
 
@@ -100,6 +116,26 @@ export const NOTIFICATION_ENDPOINTS = {
   unsubscribe: endpoint("/admin/notifications/unsubscribe")
 };
 
+// Shop Endpoints
+export const SHOP_ENDPOINTS = {
+  products: {
+    list: endpoint("/admin/shop/products"),
+    create: endpoint("/admin/shop/products"),
+    getById: withId("/admin/shop/products"),
+    update: withId("/admin/shop/products"),
+    delete: withId("/admin/shop/products"),
+  },
+  requests: {
+    list: endpoint("/admin/shop/requests"),
+    getById: withId("/admin/shop/requests"),
+    approve: (requestId) => endpoint(`/admin/shop/requests/${requestId}/approve`),
+    reject: (requestId) => endpoint(`/admin/shop/requests/${requestId}/reject`),
+    fulfill: (requestId) => endpoint(`/admin/shop/requests/${requestId}/fulfill`),
+    confirmPayment: (requestId) => endpoint(`/admin/shop/requests/${requestId}/confirm-payment`),
+    pendingCount: endpoint("/admin/shop/requests/pending/count"),
+  },
+};
+
 // Legacy support (to be removed after migration)
 export const LEGACY_ENDPOINTS = {
   // Keep old exports for backward compatibility during transition
@@ -111,6 +147,8 @@ export const LEGACY_ENDPOINTS = {
   AdminGetPendingApartmentByIdAPI: APARTMENT_ENDPOINTS.pending.getById,
   AdminGetApprovedApartmentsAPI: APARTMENT_ENDPOINTS.approved.list,
   AdminGetApprovedApartmentByIdAPI: APARTMENT_ENDPOINTS.approved.getById,
+  AdminGetResubmittedApartmentsAPI: APARTMENT_ENDPOINTS.resubmitted.list,
+  AdminGetResubmittedApartmentByIdAPI: APARTMENT_ENDPOINTS.resubmitted.getById,
   AdminApprovedApartment: APARTMENT_ENDPOINTS.pending.approve,
   AdminRejectApartment: APARTMENT_ENDPOINTS.pending.reject,
   AdminGetBookingsSummaryAPI: BOOKING_ENDPOINTS.summary,
@@ -128,6 +166,8 @@ export const {
   AdminGetPendingApartmentByIdAPI,
   AdminGetApprovedApartmentsAPI,
   AdminGetApprovedApartmentByIdAPI,
+  AdminGetResubmittedApartmentsAPI,
+  AdminGetResubmittedApartmentByIdAPI,
   AdminApprovedApartment,
   AdminRejectApartment,
   AdminGetBookingsSummaryAPI,

@@ -13,19 +13,12 @@ import { ProfileIcon } from "../Icons/Icons";
 export default function HeaderLinks(props) {
 	const { variant, children, fixed, secondary, onOpen, ...rest } = props;
 
-	const { isAdmin, username } = useContext(GlobalContext);
+	const { username } = useContext(GlobalContext);
 	// Chakra Color Mode
-	let mainTeal = useColorModeValue("red.300", "red.300");
-	let inputBg = useColorModeValue("white", "gray.800");
-	let mainText = useColorModeValue("gray.700", "gray.200");
 	let navbarIcon = useColorModeValue("gray.500", "gray.200");
-	let searchIcon = useColorModeValue("gray.700", "gray.200");
-
 	if (secondary) {
 		navbarIcon = "white";
-		mainText = "white";
 	}
-	const settingsRef = React.useRef();
 	return (
 		<Flex
 			pe={{ sm: "0px", md: "16px" }}

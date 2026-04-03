@@ -1,0 +1,846 @@
+{
+  "status": "success",
+  "data": {
+    "overview": {
+      "apartments": {
+        "_id": null,
+        "total": 351,
+        "owned": 325,
+        "imported": 26,
+        "avgPrice": 171382.08262108263,
+        "totalValue": 60155111,
+        "maxPrice": 800000,
+        "minPrice": 101,
+        "avgBedrooms": 2.1652421652421654,
+        "avgBathrooms": 2.9800569800569803,
+        "totalImages": 3303,
+        "apartmentsWithVideos": 36
+      },
+      "agents": {
+        "_id": null,
+        "total": 64,
+        "activeAgents": 43,
+        "agentsWithBookings": 11,
+        "avgApartmentsPerAgent": 5.484375,
+        "avgBookingsPerAgent": 0.890625,
+        "totalApartments": 351,
+        "totalBookings": 57,
+        "avgWalletBalance": 18589.375
+      },
+      "users": {
+        "_id": null,
+        "total": 17,
+        "newThisMonth": 6,
+        "newThisWeek": 1,
+        "newToday": 0,
+        "usersWithBookings": 4,
+        "avgBookingsPerUser": 2.235294117647059
+      },
+      "wallets": {
+        "_id": null,
+        "totalWallets": 8,
+        "totalBalance": 148715,
+        "avgBalance": 18589.375,
+        "maxBalance": 108000,
+        "minBalance": 0,
+        "walletsWithBalance": 6,
+        "highValueWallets": 1,
+        "mediumValueWallets": 1,
+        "lowValueWallets": 4
+      }
+    },
+    "financial": {
+      "bookings": {
+        "totalBookings": 0,
+        "completedBookings": 0,
+        "activeBookings": 0,
+        "cancelledBookings": 0,
+        "pendingPaymentBookings": 0,
+        "failedPaymentBookings": 0,
+        "totalRevenue": 0,
+        "totalCost": 0,
+        "totalProfit": 0,
+        "avgBookingValue": 0,
+        "avgProfitMargin": 0,
+        "maxBookingValue": 0,
+        "minBookingValue": 0,
+        "avgNightsDuration": 0
+      },
+      "revenueByStatus": {},
+      "transactions": {},
+      "withdrawals": {
+        "totalWithdrawals": 0,
+        "totalAmount": 0,
+        "pendingWithdrawals": 0,
+        "processedWithdrawals": 0,
+        "failedWithdrawals": 0,
+        "avgWithdrawalAmount": 0,
+        "maxWithdrawal": 0,
+        "minWithdrawal": 0,
+        "successRate": 0,
+        "avgProcessingTime": 0
+      },
+      "revenueBreakdown": {},
+      "profitAnalysis": {
+        "highProfitBookings": 0,
+        "mediumProfitBookings": 0,
+        "lowProfitBookings": 0,
+        "lossBookings": 0
+      },
+      "paymentStats": {
+        "totalSuccessfulPayments": 0,
+        "totalAmount": 0,
+        "avgTransactionAmount": 0,
+        "avgServiceFee": 0
+      }
+    },
+    "property": {
+      "apartmentsByStatus": {
+        "approved": {
+          "_id": "approved",
+          "count": 345,
+          "owned": 319,
+          "imported": 26,
+          "avgPrice": 173452.1739130435,
+          "totalValue": 59841000,
+          "avgProcessingTime": 251961115.9526814
+        },
+        "under_review": {
+          "_id": "under_review",
+          "count": 2,
+          "owned": 2,
+          "imported": 0,
+          "avgPrice": 50055.5,
+          "totalValue": 100111,
+          "avgProcessingTime": 1264537
+        },
+        "rejected": {
+          "_id": "rejected",
+          "count": 4,
+          "owned": 4,
+          "imported": 0,
+          "avgPrice": 53500,
+          "totalValue": 214000,
+          "avgProcessingTime": 179723189
+        }
+      },
+      "apartmentsByBedrooms": [
+        {
+          "_id": 1,
+          "count": 95,
+          "avgPrice": 114305.26315789473,
+          "totalValue": 10859000,
+          "avgBookings": 0,
+          "totalRevenue": 0
+        },
+        {
+          "_id": 2,
+          "count": 142,
+          "avgPrice": 166021.12676056338,
+          "totalValue": 23575000,
+          "avgBookings": 0,
+          "totalRevenue": 0
+        },
+        {
+          "_id": 3,
+          "count": 80,
+          "avgPrice": 211200,
+          "totalValue": 16896000,
+          "avgBookings": 0,
+          "totalRevenue": 0
+        },
+        {
+          "_id": 4,
+          "count": 30,
+          "avgPrice": 261833.33333333334,
+          "totalValue": 7855000,
+          "avgBookings": 0,
+          "totalRevenue": 0
+        },
+        {
+          "_id": 5,
+          "count": 3,
+          "avgPrice": 290033.6666666667,
+          "totalValue": 870101,
+          "avgBookings": 0,
+          "totalRevenue": 0
+        },
+        {
+          "_id": 6,
+          "count": 1,
+          "avgPrice": 100010,
+          "totalValue": 100010,
+          "avgBookings": 0,
+          "totalRevenue": 0
+        }
+      ],
+      "apartmentPerformance": {
+        "_id": null,
+        "totalApproved": 345,
+        "avgBookingsPerApartment": 0,
+        "avgRevenuePerApartment": 0,
+        "topPerformer": 0,
+        "underperformers": 345
+      },
+      "locationDistribution": [
+        {
+          "_id": "Abuja ",
+          "count": 85,
+          "avgPrice": 189470.58823529413,
+          "approvedCount": 84,
+          "totalRevenue": 0,
+          "totalBookings": 0,
+          "avgBookingsPerApartment": 0
+        },
+        {
+          "_id": "Abuja",
+          "count": 79,
+          "avgPrice": 182911.3924050633,
+          "approvedCount": 79,
+          "totalRevenue": 0,
+          "totalBookings": 0,
+          "avgBookingsPerApartment": 0
+        },
+        {
+          "_id": "Lagos",
+          "count": 73,
+          "avgPrice": 154328.76712328766,
+          "approvedCount": 72,
+          "totalRevenue": 0,
+          "totalBookings": 0,
+          "avgBookingsPerApartment": 0
+        },
+        {
+          "_id": "Lagos ",
+          "count": 42,
+          "avgPrice": 149761.90476190476,
+          "approvedCount": 42,
+          "totalRevenue": 0,
+          "totalBookings": 0,
+          "avgBookingsPerApartment": 0
+        },
+        {
+          "_id": "Lagos state ",
+          "count": 25,
+          "avgPrice": 196600,
+          "approvedCount": 25,
+          "totalRevenue": 0,
+          "totalBookings": 0,
+          "avgBookingsPerApartment": 0
+        },
+        {
+          "_id": "lagos ",
+          "count": 13,
+          "avgPrice": 135384.61538461538,
+          "approvedCount": 13,
+          "totalRevenue": 0,
+          "totalBookings": 0,
+          "avgBookingsPerApartment": 0
+        },
+        {
+          "_id": "lagos",
+          "count": 10,
+          "avgPrice": 147000,
+          "approvedCount": 9,
+          "totalRevenue": 0,
+          "totalBookings": 0,
+          "avgBookingsPerApartment": 0
+        },
+        {
+          "_id": "Lagos State",
+          "count": 7,
+          "avgPrice": 195000,
+          "approvedCount": 7,
+          "totalRevenue": 0,
+          "totalBookings": 0,
+          "avgBookingsPerApartment": 0
+        },
+        {
+          "_id": "Lagos state",
+          "count": 3,
+          "avgPrice": 180000,
+          "approvedCount": 3,
+          "totalRevenue": 0,
+          "totalBookings": 0,
+          "avgBookingsPerApartment": 0
+        },
+        {
+          "_id": "ABUJA",
+          "count": 2,
+          "avgPrice": 100000,
+          "approvedCount": 2,
+          "totalRevenue": 0,
+          "totalBookings": 0,
+          "avgBookingsPerApartment": 0
+        },
+        {
+          "_id": "abuja ",
+          "count": 2,
+          "avgPrice": 155000,
+          "approvedCount": 2,
+          "totalRevenue": 0,
+          "totalBookings": 0,
+          "avgBookingsPerApartment": 0
+        },
+        {
+          "_id": "Lagos State ",
+          "count": 1,
+          "avgPrice": 330000,
+          "approvedCount": 1,
+          "totalRevenue": 0,
+          "totalBookings": 0,
+          "avgBookingsPerApartment": 0
+        },
+        {
+          "_id": "Lagos Nigeria",
+          "count": 1,
+          "avgPrice": 155000,
+          "approvedCount": 1,
+          "totalRevenue": 0,
+          "totalBookings": 0,
+          "avgBookingsPerApartment": 0
+        },
+        {
+          "_id": "Enugu state",
+          "count": 1,
+          "avgPrice": 220000,
+          "approvedCount": 1,
+          "totalRevenue": 0,
+          "totalBookings": 0,
+          "avgBookingsPerApartment": 0
+        },
+        {
+          "_id": "Federal Capital Territory",
+          "count": 1,
+          "avgPrice": 250000,
+          "approvedCount": 1,
+          "totalRevenue": 0,
+          "totalBookings": 0,
+          "avgBookingsPerApartment": 0
+        }
+      ],
+      "amenitiesAnalysis": [
+        {
+          "_id": "Air Conditioning",
+          "count": 333,
+          "avgPrice": 172417.44744744746,
+          "avgBookings": 0
+        },
+        {
+          "_id": "24 / 7 Electricity",
+          "count": 311,
+          "avgPrice": 174324.75884244373,
+          "avgBookings": 0
+        },
+        {
+          "_id": "Netflix & Dstv",
+          "count": 311,
+          "avgPrice": 176125.40192926046,
+          "avgBookings": 0
+        },
+        {
+          "_id": "Smart TVs",
+          "count": 283,
+          "avgPrice": 177508.8339222615,
+          "avgBookings": 0
+        },
+        {
+          "_id": "Kitchen",
+          "count": 266,
+          "avgPrice": 179177.07142857142,
+          "avgBookings": 0
+        },
+        {
+          "_id": "24/7 Check-in",
+          "count": 264,
+          "avgPrice": 175946.9696969697,
+          "avgBookings": 0
+        },
+        {
+          "_id": "Top Notch Security",
+          "count": 256,
+          "avgPrice": 177343.75,
+          "avgBookings": 0
+        },
+        {
+          "_id": "TV",
+          "count": 249,
+          "avgPrice": 174301.61044176706,
+          "avgBookings": 0
+        },
+        {
+          "_id": "Wi-Fi",
+          "count": 249,
+          "avgPrice": 170281.16465863455,
+          "avgBookings": 0
+        },
+        {
+          "_id": "Fully Equipped Kitchen",
+          "count": 230,
+          "avgPrice": 180413.04347826086,
+          "avgBookings": 0
+        },
+        {
+          "_id": "Close Proximity To Key Areas In Town",
+          "count": 205,
+          "avgPrice": 179682.92682926828,
+          "avgBookings": 0
+        },
+        {
+          "_id": "Free Parking",
+          "count": 204,
+          "avgPrice": 178289.21568627452,
+          "avgBookings": 0
+        },
+        {
+          "_id": "Free Parking Space",
+          "count": 194,
+          "avgPrice": 181649.48453608248,
+          "avgBookings": 0
+        },
+        {
+          "_id": "Security Cameras",
+          "count": 164,
+          "avgPrice": 189359.75609756098,
+          "avgBookings": 0
+        },
+        {
+          "_id": "Balcony/Patio",
+          "count": 154,
+          "avgPrice": 184577.9220779221,
+          "avgBookings": 0
+        },
+        {
+          "_id": "Smart Security Door Lock",
+          "count": 141,
+          "avgPrice": 188120.56737588652,
+          "avgBookings": 0
+        },
+        {
+          "_id": "Housekeeping",
+          "count": 140,
+          "avgPrice": 179750,
+          "avgBookings": 0
+        },
+        {
+          "_id": "Washing Machine",
+          "count": 133,
+          "avgPrice": 185150.37593984962,
+          "avgBookings": 0
+        },
+        {
+          "_id": "PS5",
+          "count": 128,
+          "avgPrice": 181922.6640625,
+          "avgBookings": 0
+        },
+        {
+          "_id": "Superfast 5G WiFi",
+          "count": 98,
+          "avgPrice": 191275.51020408163,
+          "avgBookings": 0
+        }
+      ]
+    },
+    "engagement": {
+      "reservations": {
+        "totalReservations": 0,
+        "pendingReservations": 0,
+        "acceptedReservations": 0,
+        "declinedReservations": 0,
+        "cancelledReservations": 0,
+        "acceptanceRate": 0,
+        "avgResponseTime": 0,
+        "normalReservations": 0,
+        "partyReservations": 0,
+        "photoReservations": 0,
+        "movieReservations": 0
+      },
+      "reviews": {
+        "totalReviews": 0,
+        "avgRating": 0,
+        "avgCleanliness": 0,
+        "avgLocation": 0,
+        "avgCommunication": 0,
+        "avgValue": 0,
+        "reviewsWithResponse": 0,
+        "flaggedReviews": 0,
+        "responseRate": 0,
+        "fiveStarReviews": 0,
+        "fourStarReviews": 0,
+        "threeStarReviews": 0,
+        "twoStarReviews": 0,
+        "oneStarReviews": 0
+      },
+      "notifications": {
+        "totalNotifications": 0,
+        "readNotifications": 0,
+        "unreadNotifications": 0,
+        "readRate": 0
+      },
+      "userEngagement": {
+        "_id": null,
+        "frequentUsers": 4,
+        "regularUsers": 0,
+        "oneTimeUsers": 0,
+        "usersWithReviews": 0,
+        "avgBookingsPerUser": 2.235294117647059,
+        "avgReviewsPerUser": 0
+      },
+      "repeatCustomers": {
+        "repeatCustomers": 0,
+        "newCustomers": 0,
+        "avgCustomerLifetime": 0,
+        "avgRepeatCustomerValue": 0
+      }
+    },
+    "performance": {
+      "topAgents": [
+        {
+          "_id": "6895a9ea12505d8be9179425",
+          "firstName": "Chidi",
+          "lastName": "Ekwe",
+          "email": "chidirudeboy@gmail.com",
+          "totalBookings": 5,
+          "totalApartments": 10,
+          "totalRevenue": 4195483,
+          "totalProfit": 90408,
+          "avgBookingValue": 839096.6
+        },
+        {
+          "_id": "6892e5fa8683a657bf70a567",
+          "firstName": "Richmond",
+          "lastName": "Elaigwu",
+          "email": "richmondelaigwu@gmail.com",
+          "totalBookings": 3,
+          "totalApartments": 1,
+          "totalRevenue": 4000011,
+          "totalProfit": 800001,
+          "walletBalance": 125,
+          "avgBookingValue": 1333337
+        },
+        {
+          "_id": "6895d7c812505d8be91794e0",
+          "firstName": "Big Tycoone",
+          "lastName": "",
+          "email": "ceoluxeapartments@gmail.com",
+          "totalBookings": 2,
+          "totalApartments": 1,
+          "totalRevenue": 3220000,
+          "totalProfit": 0,
+          "avgBookingValue": 1610000
+        },
+        {
+          "_id": "68a9f90ab6b4042a3bcb561c",
+          "firstName": "Africartz ",
+          "lastName": "Booking",
+          "email": "africartzapartment@gmail.com",
+          "totalBookings": 7,
+          "totalApartments": 153,
+          "totalRevenue": 1592880,
+          "totalProfit": 21930,
+          "walletBalance": 108000,
+          "avgBookingValue": 227554.2857142857
+        },
+        {
+          "_id": "6897417912505d8be9179b0a",
+          "firstName": "Ifeoma",
+          "lastName": "Dilichi ",
+          "email": "skkainova@gmail.com",
+          "totalBookings": 8,
+          "totalApartments": 0,
+          "totalRevenue": 1590476,
+          "totalProfit": 121336,
+          "walletBalance": 38000,
+          "avgBookingValue": 198809.5
+        },
+        {
+          "_id": "68a1b6c4b554f18e4771b976",
+          "firstName": "Joy",
+          "lastName": "Mary",
+          "email": "favoworks@gmail.com",
+          "totalBookings": 3,
+          "totalApartments": 0,
+          "totalRevenue": 1552310,
+          "totalProfit": 260210,
+          "walletBalance": 0,
+          "avgBookingValue": 517436.6666666667
+        },
+        {
+          "_id": "68bdc0e8985c0201498e8883",
+          "firstName": "Godwin",
+          "lastName": "Ekwe",
+          "email": "bendonaldben800@gmail.com",
+          "totalBookings": 4,
+          "totalApartments": 2,
+          "totalRevenue": 843108,
+          "totalProfit": 140062,
+          "walletBalance": 1500,
+          "avgBookingValue": 210777
+        },
+        {
+          "_id": "689ce0b36f3846009ecd45b3",
+          "firstName": "Africart",
+          "lastName": "Store ",
+          "email": "ekwechidi7@gmail.com",
+          "totalBookings": 5,
+          "totalApartments": 1,
+          "totalRevenue": 618068,
+          "totalProfit": 201624,
+          "walletBalance": 100,
+          "avgBookingValue": 123613.6
+        },
+        {
+          "_id": "6893800712505d8be917888d",
+          "firstName": "Isaac",
+          "lastName": "Ikape",
+          "email": "ikapeisaac3@gmail.com",
+          "totalBookings": 17,
+          "totalApartments": 5,
+          "totalRevenue": 424926,
+          "totalProfit": 60610,
+          "walletBalance": 990,
+          "avgBookingValue": 24995.647058823528
+        },
+        {
+          "_id": "6899b31b6f3846009ecd366e",
+          "firstName": "Mary",
+          "lastName": "Joy",
+          "email": "africartzstore@gmail.com",
+          "totalBookings": 1,
+          "totalApartments": 1,
+          "totalRevenue": 280000,
+          "totalProfit": 20000,
+          "avgBookingValue": 280000
+        }
+      ],
+      "agentActivity": {
+        "_id": null,
+        "highPerformers": 1,
+        "mediumPerformers": 7,
+        "lowPerformers": 3,
+        "inactiveAgents": 53
+      },
+      "conversionRates": {
+        "reservationToBookingRate": 0,
+        "bookingCompletionRate": 0,
+        "userToBookingRate": 0
+      },
+      "customerLifetimeValue": {
+        "_id": null,
+        "avgCustomerLifetimeValue": 3676450.4,
+        "avgCustomerBookings": 11.4,
+        "avgCustomerLifespan": 2126234430.4
+      },
+      "bookingDuration": {
+        "avgDuration": 0,
+        "shortStays": 0,
+        "mediumStays": 0,
+        "longStays": 0
+      }
+    },
+    "trends": {
+      "dailyTrends": [
+        {
+          "_id": {
+            "year": 2025,
+            "month": 9,
+            "day": 2
+          },
+          "bookings": 1,
+          "revenue": 420000,
+          "profit": 60000,
+          "avgBookingValue": 420000
+        },
+        {
+          "_id": {
+            "year": 2025,
+            "month": 9,
+            "day": 3
+          },
+          "bookings": 4,
+          "revenue": 500,
+          "profit": 12,
+          "avgBookingValue": 125
+        },
+        {
+          "_id": {
+            "year": 2025,
+            "month": 9,
+            "day": 4
+          },
+          "bookings": 5,
+          "revenue": 166790,
+          "profit": 1830,
+          "avgBookingValue": 33358
+        },
+        {
+          "_id": {
+            "year": 2025,
+            "month": 9,
+            "day": 5
+          },
+          "bookings": 3,
+          "revenue": 13986,
+          "profit": 606,
+          "avgBookingValue": 4662
+        },
+        {
+          "_id": {
+            "year": 2025,
+            "month": 9,
+            "day": 7
+          },
+          "bookings": 2,
+          "revenue": 360125,
+          "profit": 60003,
+          "avgBookingValue": 180062.5
+        },
+        {
+          "_id": {
+            "year": 2025,
+            "month": 9,
+            "day": 8
+          },
+          "bookings": 4,
+          "revenue": 393408,
+          "profit": 90122,
+          "avgBookingValue": 98352
+        },
+        {
+          "_id": {
+            "year": 2025,
+            "month": 9,
+            "day": 11
+          },
+          "bookings": 6,
+          "revenue": 480625,
+          "profit": 80015,
+          "avgBookingValue": 80104.16666666667
+        },
+        {
+          "_id": {
+            "year": 2025,
+            "month": 9,
+            "day": 17
+          },
+          "bookings": 4,
+          "revenue": 4340000,
+          "profit": 0,
+          "avgBookingValue": 1085000
+        },
+        {
+          "_id": {
+            "year": 2025,
+            "month": 9,
+            "day": 25
+          },
+          "bookings": 6,
+          "revenue": 1052880,
+          "profit": 21930,
+          "avgBookingValue": 175480
+        }
+      ],
+      "monthlyGrowth": [
+        {
+          "_id": {
+            "year": 2025,
+            "month": 8
+          },
+          "bookings": 22,
+          "revenue": 11153938,
+          "profit": 1405753,
+          "uniqueCustomers": [
+            "6892e70b8683a657bf70a57a",
+            "6895c00112505d8be91794af",
+            "6893afcd12505d8be9178e4f"
+          ],
+          "completedBookings": 8,
+          "uniqueCustomerCount": 3
+        },
+        {
+          "_id": {
+            "year": 2025,
+            "month": 9
+          },
+          "bookings": 35,
+          "revenue": 7228314,
+          "profit": 314518,
+          "uniqueCustomers": [
+            "6892e70b8683a657bf70a57a",
+            "68a87b6b0b408c96a41db640",
+            "6895c00112505d8be91794af",
+            "6893afcd12505d8be9178e4f"
+          ],
+          "completedBookings": 11,
+          "uniqueCustomerCount": 4
+        }
+      ],
+      "weeklyActivity": [
+        {
+          "_id": {
+            "year": 2025,
+            "week": 35
+          },
+          "bookings": 13,
+          "revenue": 601276,
+          "avgDayOfWeek": 4.769230769230769
+        },
+        {
+          "_id": {
+            "year": 2025,
+            "week": 36
+          },
+          "bookings": 12,
+          "revenue": 1234158,
+          "avgDayOfWeek": 3.3333333333333335
+        },
+        {
+          "_id": {
+            "year": 2025,
+            "week": 37
+          },
+          "bookings": 4,
+          "revenue": 4340000,
+          "avgDayOfWeek": 4
+        },
+        {
+          "_id": {
+            "year": 2025,
+            "week": 38
+          },
+          "bookings": 6,
+          "revenue": 1052880,
+          "avgDayOfWeek": 5
+        }
+      ],
+      "hourlyPatterns": [],
+      "previousPeriodComparison": null
+    },
+    "metadata": {
+      "generatedAt": "2025-09-29T10:36:49.128Z",
+      "dateRange": {
+        "startDate": "2024-09-01T00:00:00.000Z",
+        "endDate": "2024-09-30T23:59:59.999Z",
+        "period": "custom"
+      },
+      "totalQueries": 31,
+      "responseTime": 22
+    }
+  },
+  "meta": {
+    "responseTimeMs": 22,
+    "availablePeriods": [
+      "today",
+      "yesterday",
+      "last_7_days",
+      "last_30_days",
+      "this_month",
+      "last_month",
+      "this_quarter",
+      "this_year",
+      "last_year"
+    ],
+    "queryCount": 31
+  }
+}

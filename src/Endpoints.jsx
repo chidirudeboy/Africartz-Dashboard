@@ -1,5 +1,6 @@
 // Base API URL (environment configurable)
-export const baseUrl = process.env.REACT_APP_API_BASE_URL || "https://api.africartz.com/api";
+import { ENV_CONFIG } from './config/env';
+export const baseUrl = ENV_CONFIG.API_BASE_URL;
 
 // Helper to generate full endpoint paths
 const endpoint = (path) => `${baseUrl}${path}`;
@@ -8,7 +9,15 @@ const endpoint = (path) => `${baseUrl}${path}`;
 
 export const AdminLoginAPI = endpoint("/auth/admin/login");
 export const AdminGetAgentAPI = endpoint("/admin/agents");
+export const AdminChangeAgentStatusAPI = (AGENT_ID) => endpoint(`/admin/agents/${AGENT_ID}/status`);
 export const AdminGetUsersAPI = endpoint("/admin/users");
+export const AdminChangeUserStatusAPI = (USER_ID) => endpoint(`/admin/users/${USER_ID}/status`);
+export const AdminGetAgentWalletsAPI = endpoint("/admin/agent-wallets");
+export const AdminGetBlogsAPI = endpoint("/admin/blogs");
+export const AdminCreateBlogAPI = endpoint("/admin/blogs");
+export const AdminUpdateBlogAPI = (POST_ID) => endpoint(`/admin/blogs/${POST_ID}`);
+export const AdminChangeBlogStatusAPI = (POST_ID) => endpoint(`/admin/blogs/${POST_ID}/status`);
+export const AdminDeleteBlogAPI = (POST_ID) => endpoint(`/admin/blogs/${POST_ID}`);
 export const AdminGetStatsAPI = endpoint("/admin/stats");
 
 
@@ -16,12 +25,24 @@ export const AdminGetStatsAPI = endpoint("/admin/stats");
 export const AdminGetPendingApartmentsAPI = endpoint("/apartment/pending-apartments");
 export const AdminGetPendingApartmentByIdAPI = (APARTMENT_ID) => endpoint(`/apartment/pending-apartments/${APARTMENT_ID}`);
 export const AdminGetApprovedApartmentsAPI = endpoint("/admin/apartments/approved");
+export const AdminGetCatalogueAPI = endpoint("/admin/apartments/catalogue");
 export const AdminGetApprovedApartmentByIdAPI = (APARTMENT_ID) => endpoint(`/admin/apartments/approved/${APARTMENT_ID}`);
+export const AdminToggleApartmentVerificationAPI = (APARTMENT_ID) => endpoint(`/admin/apartments/${APARTMENT_ID}/verification`);
+export const AdminGetRemovedApartmentsAPI = endpoint("/admin/apartments/removed");
+export const AdminRemoveApartmentAPI = (APARTMENT_ID) => endpoint(`/admin/${APARTMENT_ID}/remove`);
+export const AdminGetResubmittedApartmentsAPI = endpoint("/admin/apartments/review");
+export const AdminGetResubmittedApartmentDetailsAPI = (APARTMENT_ID) => endpoint(`/admin/apartments/review/${APARTMENT_ID}`);
+export const AdminApproveResubmittedApartmentAPI = (APARTMENT_ID) => endpoint(`/admin/${APARTMENT_ID}/approve`);
+export const AdminRejectResubmittedApartmentAPI = (APARTMENT_ID) => endpoint(`/admin/${APARTMENT_ID}/reject`);
+export const AdminUpdateApartmentAPI = (APARTMENT_ID) => endpoint(`/apartment/admin/updateApartment/${APARTMENT_ID}`);
 export const AdminApprovedApartment = (APARTMENT_ID) => endpoint(`/admin/apartments/${APARTMENT_ID}/status`);
 export const AdminRejectApartment = (APARTMENT_ID) => endpoint(`/admin/${APARTMENT_ID}/reject`);
 
 export const AdminGetBookingsSummaryAPI = endpoint("/admin/bookings");
 export const AdminGetAllBookingsAPI = endpoint("/admin/bookings/all");
+
+// Reservations Endpoints
+export const AdminGetAllReservationsAPI = endpoint("/admin/reservations/all-agents");
 
 
 // ≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠OLD≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠

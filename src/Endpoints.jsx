@@ -40,6 +40,7 @@ export const AdminRejectApartment = (APARTMENT_ID) => endpoint(`/admin/${APARTME
 
 export const AdminGetBookingsSummaryAPI = endpoint("/admin/bookings");
 export const AdminGetAllBookingsAPI = endpoint("/admin/bookings/all");
+export const AdminReleaseBookingPayoutAPI = (bookingId) => endpoint(`/admin/bookings/${bookingId}/release-payout`);
 
 // Reservations Endpoints
 export const AdminGetAllReservationsAPI = endpoint("/admin/reservations/all-agents");

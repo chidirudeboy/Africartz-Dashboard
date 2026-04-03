@@ -88,7 +88,8 @@ export const BOOKING_ENDPOINTS = {
   getById: withId("/admin/bookings/details"),
   create: endpoint("/admin/bookings"),
   update: withId("/admin/bookings"),
-  delete: withId("/admin/bookings")
+  delete: withId("/admin/bookings"),
+  releasePayout: (bookingId) => endpoint(`/admin/bookings/${bookingId}/release-payout`)
 };
 
 // Landlords Endpoints

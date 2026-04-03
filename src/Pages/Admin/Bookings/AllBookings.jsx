@@ -130,6 +130,8 @@ const AllBookings = () => {
     return colors[status] || 'gray';
   };
 
+  const getBookingId = (booking) => booking?._id || booking?.id;
+
   const formatCurrency = (amount) => {
     return new Intl.NumberFormat('en-NG', {
       style: 'currency',
@@ -159,7 +161,17 @@ const AllBookings = () => {
   };
 
   const handleAdminRelease = async () => {
-    if (!selectedBooking?._id) return;
+    const bookingId = getBookingId(selectedBooking);
+    if (!bookingId) {
+      toast({
+        title: 'Missing booking ID',
+        description: 'This booking is missing an ID. Please refresh and try again.',
+        status: 'error',
+        duration: 4000,
+        isClosable: true
+      });
+      return;
+    }
     if (!releaseReason.trim()) {
       toast({
         title: 'Reason required',
@@ -174,7 +186,7 @@ const AllBookings = () => {
     try {
       setReleasing(true);
       const token = localStorage.getItem('authToken');
-      const response = await fetch(AdminReleaseBookingPayoutAPI(selectedBooking._id), {
+      const response = await fetch(AdminReleaseBookingPayoutAPI(bookingId), {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -328,9 +340,9 @@ const AllBookings = () => {
                   </Thead>
                   <Tbody>
                     {bookings && bookings.filter(booking => !booking.transactionRef?.startsWith('Offline-')).map((booking, index) => (
-                      <Tr key={booking._id || index}>
+                      <Tr key={getBookingId(booking) || index}>
                         <Td fontSize="sm" fontFamily="mono">
-                          {booking._id ? booking._id.slice(-8) : 'N/A'}
+                          {getBookingId(booking) ? getBookingId(booking).slice(-8) : 'N/A'}
                         </Td>
                         <Td>
                           <VStack align="start" spacing={1}>
@@ -396,7 +408,7 @@ const AllBookings = () => {
                           <Button
                             size="xs"
                             colorScheme="blue"
-                            isDisabled={booking.payoutStatus === 'released'}
+                            isDisabled={booking.payoutStatus === 'released' || !getBookingId(booking)}
                             onClick={() => openReleaseModal(booking)}
                           >
                             Release
@@ -482,7 +494,7 @@ const AllBookings = () => {
               <Text fontSize="sm" color="gray.600">
                 You are about to release payout for booking{' '}
                 <Text as="span" fontWeight="bold">
-                  {selectedBooking?._id?.slice(-8) || 'N/A'}
+                  {getBookingId(selectedBooking)?.slice(-8) || 'N/A'}
                 </Text>.
               </Text>
               <Box>

@@ -54,7 +54,7 @@ import {
 	AlertDialogOverlay,
 } from "@chakra-ui/react";
 import { FaWifi, FaPhoneAlt, FaWhatsapp, FaMapMarkerAlt, FaBed, FaBath, FaUsers, FaChevronLeft, FaChevronRight, FaTimes } from "react-icons/fa";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { Column } from "primereact/column";
 import { DataTable } from "primereact/datatable";
 import axios from "axios";
@@ -64,7 +64,6 @@ import {
 	AdminGetPendingApartmentByIdAPI,
 	AdminUpdateApartmentAPI,
 	AdminApprovedApartment,
-	AdminRejectApartment,
 } from "../../../Endpoints";
 
 const Index = () => {
@@ -88,7 +87,7 @@ const Index = () => {
 	const cancelRef = React.useRef();
 	const toast = useToast();
 
-	const fetchPendingApartments = async () => {
+	const fetchPendingApartments = useCallback(async () => {
 		setLoading(true);
 		try {
 			const authToken = localStorage.getItem("authToken");
@@ -129,7 +128,7 @@ const Index = () => {
 		} finally {
 			setLoading(false);
 		}
-	};
+	}, [toast]);
 
 
 	const fetchApartmentDetails = async (apartmentId) => {
@@ -460,7 +459,7 @@ const Index = () => {
 
 	useEffect(() => {
 		fetchPendingApartments();
-	}, []);
+	}, [fetchPendingApartments]);
 
 	return (
 		<Flex flexDirection="column" pt={{ base: "120px", md: "75px" }}>

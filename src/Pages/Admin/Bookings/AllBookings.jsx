@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Box,
   Text,
@@ -14,7 +14,6 @@ import {
   Select,
   Input,
   Badge,
-  useColorModeValue,
   Spinner,
   Alert,
   AlertIcon,
@@ -45,11 +44,7 @@ const AllBookings = () => {
   });
 
 
-  useEffect(() => {
-    fetchAllBookings();
-  }, [filters]);
-
-  const fetchAllBookings = async () => {
+  const fetchAllBookings = useCallback(async () => {
     try {
       setLoading(true);
       const token = localStorage.getItem('authToken');
@@ -80,7 +75,11 @@ const AllBookings = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [filters]);
+
+  useEffect(() => {
+    fetchAllBookings();
+  }, [fetchAllBookings]);
 
   const handleFilterChange = (key, value) => {
     setFilters(prev => ({

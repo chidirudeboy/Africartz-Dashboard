@@ -32,8 +32,8 @@ import {
 	TabPanel,
 	Icon,
 } from "@chakra-ui/react";
-import { FaWifi, FaPhoneAlt, FaWhatsapp, FaMapMarkerAlt, FaBed, FaBath, FaUsers, FaChevronLeft, FaChevronRight } from "react-icons/fa";
-import { useState, useEffect, Fragment } from "react";
+import { FaWifi, FaBed, FaBath, FaUsers, FaChevronLeft, FaChevronRight } from "react-icons/fa";
+import { useState, useEffect, Fragment, useCallback } from "react";
 import { Column } from "primereact/column";
 import { DataTable } from "primereact/datatable";
 import Card from "../../../components/Card/Card.js";
@@ -59,7 +59,7 @@ const RemovedApartments = () => {
 	const [pagination, setPagination] = useState({ page: 1, limit: 50, total: 0, pages: 0 });
 	const toast = useToast();
 
-	const fetchRemovedApartments = async (page = 1) => {
+	const fetchRemovedApartments = useCallback(async (page = 1) => {
 		setLoading(true);
 		try {
 			const authToken = localStorage.getItem("authToken");
@@ -113,7 +113,7 @@ const RemovedApartments = () => {
 		} finally {
 			setLoading(false);
 		}
-	};
+	}, [toast]);
 
 	const fetchApartmentDetails = async (apartmentId) => {
 		setApartmentDetailsLoading(apartmentId);
@@ -288,7 +288,7 @@ const RemovedApartments = () => {
 
 	useEffect(() => {
 		fetchRemovedApartments(1);
-	}, []);
+	}, [fetchRemovedApartments]);
 
 	return (
 		<Flex flexDirection="column" pt={{ base: "120px", md: "75px" }}>

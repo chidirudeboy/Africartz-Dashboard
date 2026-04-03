@@ -3,7 +3,6 @@ import {
 	Flex,
 	Heading,
 	Text,
-	SimpleGrid,
 	Tag,
 	Divider,
 	Spinner,
@@ -16,7 +15,7 @@ import {
 } from "@chakra-ui/react";
 import { CopyIcon, SearchIcon } from "@chakra-ui/icons";
 import axios from "axios";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { AdminGetCatalogueAPI } from "../../../Endpoints";
 
 const Catalogue = () => {
@@ -261,4 +260,3 @@ const Catalogue = () => {
 };
 
 export default Catalogue;
-

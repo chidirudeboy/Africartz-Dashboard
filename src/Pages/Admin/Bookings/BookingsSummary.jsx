@@ -3,23 +3,18 @@ import {
   Box,
   Text,
   VStack,
-  HStack,
   SimpleGrid,
   Stat,
   StatLabel,
   StatNumber,
   StatHelpText,
   StatArrow,
-  useColorModeValue,
   Spinner,
   Alert,
   AlertIcon,
   Card,
-  CardHeader,
   CardBody,
   Heading,
-  Badge,
-  Divider
 } from '@chakra-ui/react';
 import { AdminGetBookingsSummaryAPI } from '../../../Endpoints';
 
@@ -27,8 +22,6 @@ const BookingsSummary = () => {
   const [summaryData, setSummaryData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-
-  const cardBg = useColorModeValue('gray.50', 'gray.700');
 
   useEffect(() => {
     fetchBookingsSummary();
@@ -62,7 +55,7 @@ const BookingsSummary = () => {
         totalManualSales: data.data.totalManualSales,
         avgCommissionRate: 10, // Default rate, could be calculated from data
         agentSummaries: data.data.agentsSalesData?.map(agent => ({
-          agentName: agent.name || agent.agentName || agent.firstName && agent.lastName ? `${agent.firstName} ${agent.lastName}` : `Agent ${agent._id?.slice(-4) || 'Unknown'}`,
+          agentName: agent.name || agent.agentName || (agent.firstName && agent.lastName ? `${agent.firstName} ${agent.lastName}` : `Agent ${agent._id?.slice(-4) || 'Unknown'}`),
           totalBookings: (agent.totalOnlineBookings || 0) + (agent.totalManualBookings || 0),
           totalSales: (agent.totalOnlineSales || 0) + (agent.totalManualSales || 0),
           platformFee: (agent.totalOnlineSales || 0) * 0.1, // Platform fee only on online sales

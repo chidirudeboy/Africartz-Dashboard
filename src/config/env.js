@@ -5,7 +5,7 @@
 
 export const ENV_CONFIG = {
   // API Configuration
-  API_BASE_URL: "https://api.africartz.com/api",
+  API_BASE_URL: process.env.REACT_APP_API_BASE_URL || "https://api.africartz.com/api",
   API_TIMEOUT: parseInt(process.env.REACT_APP_API_TIMEOUT) || 10000,
   RETRY_ATTEMPTS: parseInt(process.env.REACT_APP_RETRY_ATTEMPTS) || 3,
 

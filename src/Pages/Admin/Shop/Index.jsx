@@ -6,7 +6,6 @@ import {
 	Divider,
 	Flex,
 	Grid,
-	GridItem,
 	HStack,
 	Image,
 	Input,
@@ -37,7 +36,6 @@ import { SHOP_ENDPOINTS } from "../../../api/endpoints";
 import GlobalContext from "../../../Context";
 import Card from "../../../components/Card/Card";
 import CardBody from "../../../components/Card/CardBody";
-import CardHeader from "../../../components/Card/CardHeader";
 import axios from "axios";
 import { 
 	FaBoxOpen, 
@@ -46,7 +44,6 @@ import {
 	FaPenToSquare, 
 	FaTrash, 
 	FaCircleCheck, 
-	FaClock,
 	FaUser,
 	FaCalendar,
 	FaImage,
@@ -1162,4 +1159,3 @@ const ShopAdmin = () => {
 };
 
 export default ShopAdmin;
-

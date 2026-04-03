@@ -40,15 +40,15 @@
 		"yet-another-react-lightbox": "^3.19.0"
 	},
 	"scripts": {
-		"start": "react-scripts start",
-		"dev": "react-scripts start",
-		"start:dev": "react-scripts start",
-		"start:prod-api": "cp .env .env.development.local && react-scripts start",
-		"start:staging": "REACT_APP_ENVIRONMENT=staging react-scripts start",
+		"dev": "PORT_ENV_FILES=.env.development.local,.env.development DEFAULT_PORT=3001 node scripts/run-with-port.js react-scripts start",
+		"start": "PORT_ENV_FILES=.env.development.local,.env.development DEFAULT_PORT=3001 node scripts/run-with-port.js react-scripts start",
+		"dev:staging": "REACT_APP_ENVIRONMENT=staging PORT_ENV_FILES=.env.development.local,.env.development DEFAULT_PORT=3001 node scripts/run-with-port.js react-scripts start",
+		"dev:prod": "REACT_APP_API_BASE_URL=https://api.africartz.com/api REACT_APP_ENVIRONMENT=production PORT_ENV_FILES=.env.development.local,.env.development DEFAULT_PORT=3001 node scripts/run-with-port.js react-scripts start",
 		"build": "CI=false REACT_APP_ENVIRONMENT=production REACT_APP_API_BASE_URL=https://api.africartz.com/api react-scripts build",
 		"build:dev": "REACT_APP_ENVIRONMENT=development react-scripts build",
 		"build:staging": "REACT_APP_ENVIRONMENT=staging react-scripts build",
 		"build:prod": "REACT_APP_ENVIRONMENT=production react-scripts build",
+		"clean": "rm -rf build .eslintcache",
 		"test": "react-scripts test",
 		"eject": "react-scripts eject",
 		"env:check": "node -e \"console.log('Environment variables:'); console.log('REACT_APP_API_BASE_URL:', process.env.REACT_APP_API_BASE_URL); console.log('NODE_ENV:', process.env.NODE_ENV);\""

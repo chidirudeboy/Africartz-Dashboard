@@ -61,7 +61,7 @@ import CardBody from "../../../components/Card/CardBody.js";
 import CardHeader from "../../../components/Card/CardHeader.js";
 import { formatPhoneNumber } from "../../../utils/phone";
 import { FaWifi, FaPhoneAlt, FaWhatsapp, FaMapMarkerAlt, FaBed, FaBath, FaUsers, FaChevronLeft, FaChevronRight, FaTimes, FaRedo, FaClock, FaTrash, FaUpload, FaCheck, FaStar, FaRegStar } from "react-icons/fa";
-import React, { useState, useEffect, Fragment } from "react";
+import React, { useState, useEffect, Fragment, useCallback } from "react";
 import { Column } from "primereact/column";
 import { DataTable } from "primereact/datatable";
 import axios from "axios";
@@ -106,7 +106,7 @@ const Index = () => {
 	const cancelRef = React.useRef();
 	const toast = useToast();
 
-	const fetchResubmittedApartments = async () => {
+	const fetchResubmittedApartments = useCallback(async () => {
 		setLoading(true);
 		try {
 			const authToken = localStorage.getItem("authToken");
@@ -256,7 +256,7 @@ const Index = () => {
 		} finally {
 			setLoading(false);
 		}
-	};
+	}, [toast]);
 
 	const fetchApartmentDetails = async (apartmentId) => {
 		setApartmentDetailsLoading(apartmentId);
@@ -826,7 +826,7 @@ const Index = () => {
 
 	useEffect(() => {
 		fetchResubmittedApartments();
-	}, []);
+	}, [fetchResubmittedApartments]);
 
 	// Template functions for DataTable
 	const apartmentNameTemplate = (rowData) => {

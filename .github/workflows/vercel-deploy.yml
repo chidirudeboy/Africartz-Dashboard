@@ -2,9 +2,9 @@ name: Deploy to Vercel
 
 on:
   push:
-    branches: [main, master, ikapes]
+    branches: [production, development]
   pull_request:
-    branches: [main, master, ikapes]
+    branches: [production, development]
 
 permissions:
   contents: read
@@ -55,7 +55,7 @@ jobs:
   deploy-preview:
     runs-on: ubuntu-latest
     needs: build-and-test
-    if: github.event_name == 'pull_request' || github.ref == 'refs/heads/ikapes'
+    if: github.event_name == 'pull_request' || github.ref == 'refs/heads/development'
     
     steps:
     - name: Checkout code
@@ -92,7 +92,7 @@ jobs:
   deploy-production:
     runs-on: ubuntu-latest
     needs: build-and-test
-    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
+    if: github.event_name == 'push' && github.ref == 'refs/heads/production'
     
     steps:
     - name: Checkout code

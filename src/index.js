@@ -10,7 +10,6 @@ import { GlobalProvider } from './Context';
 import "primereact/resources/themes/lara-light-indigo/theme.css";
 import "primereact/resources/primereact.min.css";
 import "primeicons/primeicons.css";
-import Layout from './components/Layout';
 import Authorize from './Authorize';
 
 const activeLabelStyles = {

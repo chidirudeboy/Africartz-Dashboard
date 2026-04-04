@@ -1,11 +1,11 @@
-import React, { useState, createContext, useContext } from "react";
+import React, { useState } from "react";
 import { Outlet } from "react-router-dom";
 // Chakra imports
 import { ChakraProvider, Portal, useDisclosure } from "@chakra-ui/react";
 import Footer from "../components/Footer/AppFooter";
 // Layout components
 import AdminNavbar from "../components/Navbars/AdminNavbar.js";
-import Sidebar, { useSidebar, SidebarContext } from "./Sidebar";
+import Sidebar, { SidebarContext } from "./Sidebar";
 // Custom Chakra theme
 import theme from "../theme/theme.js";
 // Custom components

@@ -17,6 +17,7 @@ import Bookings from "./Pages/Admin/Bookings/Index";
 import Reservations from "./Pages/Admin/Reservations/Index";
 import Agent from "./Pages/Admin/Agents/Index";
 import AgentWallets from "./Pages/Admin/AgentWallets/Index";
+import Blogs from "./Pages/Admin/Blogs/Index";
 import Statistics from "./Pages/Admin/Statistics/Index";
 import ShopAdmin from "./Pages/Admin/Shop/Index";
 import Catalogue from "./Pages/Admin/Catalogue/Index";
@@ -47,6 +48,7 @@ const Authorize = () => {
 						<Route path="/admin/reservations" element={<Reservations />} />
 						<Route path="/admin/agents" element={<Agent />} />
 						<Route path="/admin/agent-wallets" element={<AgentWallets />} />
+						<Route path="/admin/blogs" element={<Blogs />} />
 						<Route path="/admin/statistics" element={<Statistics />} />
 						<Route path="/admin/shop" element={<ShopAdmin />} />
 						{/* Add more protected routes here */}

@@ -26,6 +26,7 @@
 
 # Private documentation (contains sensitive information)
 README.private.md
+PRIVATE_README.md
 DEPLOYMENT.private.md
 CONFIG.private.md
 *.private.*

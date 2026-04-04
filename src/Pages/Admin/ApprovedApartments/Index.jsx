@@ -58,7 +58,7 @@ import {
 	AlertDialogOverlay
 } from "@chakra-ui/react";
 import { FaWifi, FaPhoneAlt, FaMapMarkerAlt, FaBed, FaBath, FaUsers, FaChevronLeft, FaChevronRight, FaTimes, FaEdit, FaTrash, FaUpload, FaCheck, FaStar, FaRegStar, FaPlus } from "react-icons/fa";
-import { useState, useEffect, Fragment, useRef } from "react";
+import { useState, useEffect, Fragment, useRef, useCallback } from "react";
 import { Column } from "primereact/column";
 import { DataTable } from "primereact/datatable";
 import Card from "../../../components/Card/Card.js";
@@ -118,7 +118,7 @@ const ApprovedApartments = () => {
 	const [seasonalPricingToDelete, setSeasonalPricingToDelete] = useState(null);
 	const [deletingSeasonalPricingId, setDeletingSeasonalPricingId] = useState(null);
 
-	const fetchApprovedApartments = async () => {
+	const fetchApprovedApartments = useCallback(async () => {
 		setLoading(true);
 		try {
 			const authToken = localStorage.getItem("authToken");
@@ -167,7 +167,7 @@ const ApprovedApartments = () => {
 		} finally {
 			setLoading(false);
 		}
-	};
+	}, [toast]);
 
 	const fetchApartmentDetails = async (apartmentId) => {
 		setApartmentDetailsLoading(apartmentId);
@@ -199,15 +199,8 @@ const ApprovedApartments = () => {
 								} catch (e) {
 									// If parsing fails, it's likely already an array of strings, use as is
 									console.warn("Failed to parse amenities JSON, using as array of strings:", e);
-									apartmentData.amenities = apartmentData.amenities;
 								}
-							} else {
-								// It's already an array of strings (like ["Wi-Fi", "Pool"]), use as is
-								apartmentData.amenities = apartmentData.amenities;
 							}
-						} else {
-							// Already an array of objects or mixed, use as is
-							apartmentData.amenities = apartmentData.amenities;
 						}
 					} else if (typeof apartmentData.amenities === 'string') {
 						// Check if it looks like JSON
@@ -473,10 +466,9 @@ const ApprovedApartments = () => {
 				isActive: seasonalFormData.isActive,
 			};
 
-			let response;
 			if (isEditing && pricingId) {
 				// Update existing
-				response = await axios.put(
+				await axios.put(
 					APARTMENT_ENDPOINTS.seasonalPricing.update(apartmentId, pricingId),
 					payload,
 					{
@@ -488,7 +480,7 @@ const ApprovedApartments = () => {
 				);
 			} else {
 				// Create new
-				response = await axios.post(
+				await axios.post(
 					APARTMENT_ENDPOINTS.seasonalPricing.create(apartmentId),
 					payload,
 					{
@@ -722,10 +714,9 @@ const ApprovedApartments = () => {
 				isActive: bedroomFormData.isActive,
 			};
 
-			let response;
 			if (isEditing && pricingId) {
 				// Update existing
-				response = await axios.put(
+				await axios.put(
 					APARTMENT_ENDPOINTS.bedroomPricing.update(apartmentId, pricingId),
 					payload,
 					{
@@ -737,7 +728,7 @@ const ApprovedApartments = () => {
 				);
 			} else {
 				// Create new
-				response = await axios.post(
+				await axios.post(
 					APARTMENT_ENDPOINTS.bedroomPricing.create(apartmentId),
 					payload,
 					{
@@ -1522,7 +1513,7 @@ const ApprovedApartments = () => {
 
 	useEffect(() => {
 		fetchApprovedApartments();
-	}, []);
+	}, [fetchApprovedApartments]);
 
 	return (
 		<Flex flexDirection="column" pt={{ base: "120px", md: "75px" }}>

@@ -62,7 +62,7 @@ const AllBookings = () => {
     try {
       setLoading(true);
       const token = localStorage.getItem('authToken');
-      
+
       // Build query string
       const queryParams = new URLSearchParams();
       Object.entries(filters).forEach(([key, value]) => {
@@ -130,6 +130,16 @@ const AllBookings = () => {
   };
 
   const getBookingId = (booking) => booking?._id || booking?.id;
+  const canReleasePayout = (booking) => {
+    const status = booking?.status;
+    return (
+      booking?.payoutStatus === 'held' &&
+      status !== 'payment_failed' &&
+      status !== 'cancelled' &&
+      status !== 'pending_payment' &&
+      Boolean(booking?.payoutReleaseCodeHash)
+    );
+  };
 
   const formatCurrency = (amount) => {
     return new Intl.NumberFormat('en-NG', {
@@ -407,7 +417,7 @@ const AllBookings = () => {
                           <Button
                             size="xs"
                             colorScheme="blue"
-                            isDisabled={booking.payoutStatus === 'released' || !getBookingId(booking)}
+                            isDisabled={!canReleasePayout(booking) || !getBookingId(booking)}
                             onClick={() => openReleaseModal(booking)}
                           >
                             Release
@@ -445,12 +455,12 @@ const AllBookings = () => {
               >
                 Previous
               </Button>
-              
+
               {/* Page numbers */}
               {Array.from({ length: Math.min(5, pagination.pages) }, (_, i) => {
                 const pageNum = Math.max(1, pagination.page - 2) + i;
                 if (pageNum > pagination.pages) return null;
-                
+
                 return (
                   <Button
                     key={pageNum}

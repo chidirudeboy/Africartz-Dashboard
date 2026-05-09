@@ -21,6 +21,7 @@ import Blogs from "./Pages/Admin/Blogs/Index";
 import Statistics from "./Pages/Admin/Statistics/Index";
 import ShopAdmin from "./Pages/Admin/Shop/Index";
 import Catalogue from "./Pages/Admin/Catalogue/Index";
+import KycManagement from "./Pages/Admin/KYC/Index";
 
 const Authorize = () => {
 	const { isLoggedIn, isLoading } = useContext(GlobalContext);
@@ -48,6 +49,7 @@ const Authorize = () => {
 						<Route path="/admin/reservations" element={<Reservations />} />
 						<Route path="/admin/agents" element={<Agent />} />
 						<Route path="/admin/agent-wallets" element={<AgentWallets />} />
+						<Route path="/admin/kyc" element={<KycManagement />} />
 						<Route path="/admin/blogs" element={<Blogs />} />
 						<Route path="/admin/statistics" element={<Statistics />} />
 						<Route path="/admin/shop" element={<ShopAdmin />} />

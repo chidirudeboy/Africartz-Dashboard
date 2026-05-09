@@ -7,6 +7,7 @@ import {
   FaUserTag,
   FaUsers,
   FaWallet,
+  FaIdCard,
 } from "react-icons/fa6";
 import { MdApartment, MdRateReview, MdStorefront } from "react-icons/md";
 import { IoStatsChart } from "react-icons/io5";
@@ -135,6 +136,12 @@ const SidebarContent = ({ logoText, isCollapsed }) => {
               text="Owner/Agents"
               icon={<Icon as={FaUserTag} w={5} h={5} />}
               route="admin/agents"
+              isCollapsed={isCollapsed}
+            />
+            <SideBarLink
+              text="KYC Verification"
+              icon={<Icon as={FaIdCard} w={5} h={5} />}
+              route="/admin/kyc"
               isCollapsed={isCollapsed}
             />
             <SideBarLink

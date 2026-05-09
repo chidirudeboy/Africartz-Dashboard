@@ -117,6 +117,14 @@ export const NOTIFICATION_ENDPOINTS = {
   unsubscribe: endpoint("/admin/notifications/unsubscribe")
 };
 
+// KYC Endpoints
+export const KYC_ENDPOINTS = {
+  list: (status) => status ? endpoint(`/admin/kyc?status=${status}`) : endpoint("/admin/kyc"),
+  getAgentKyc: (agentId) => endpoint(`/admin/agents/${agentId}/kyc`),
+  approve: (agentId) => endpoint(`/admin/agents/${agentId}/kyc/approve`),
+  reject: (agentId) => endpoint(`/admin/agents/${agentId}/kyc/reject`)
+};
+
 // Shop Endpoints
 export const SHOP_ENDPOINTS = {
   products: {

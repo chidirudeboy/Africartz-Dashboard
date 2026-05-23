@@ -1,8 +1,8 @@
 import { Fragment, useState, useEffect, useContext, useCallback } from "react";
-import { 
-  Flex, SimpleGrid, Spinner, Text, useToast, Box, Badge, HStack, VStack, 
-  Input, InputGroup, InputLeftElement, Button, Modal, ModalOverlay, ModalContent, 
-  ModalHeader, ModalBody, ModalFooter, ModalCloseButton, Textarea, FormControl, 
+import {
+  Flex, SimpleGrid, Spinner, Text, useToast, Box, Badge, HStack, VStack,
+  Input, InputGroup, InputLeftElement, Button, Modal, ModalOverlay, ModalContent,
+  ModalHeader, ModalBody, ModalFooter, ModalCloseButton, Textarea, FormControl,
   FormLabel, useDisclosure, Select, Table, Thead, Tbody, Tr, Th, Td, Tfoot,
   Alert, AlertIcon, AlertTitle, AlertDescription, Divider
 } from "@chakra-ui/react";
@@ -36,8 +36,8 @@ const KycManagement = () => {
       const authToken = localStorage.getItem("authToken");
       if (!authToken) throw new Error("No authentication token found");
 
-      const url = statusFilter && statusFilter !== "all" 
-        ? `${AdminGetKycListAPI}?status=${statusFilter}` 
+      const url = statusFilter && statusFilter !== "all"
+        ? `${AdminGetKycListAPI}?status=${statusFilter}`
         : AdminGetKycListAPI;
 
       const response = await axios.get(url, {
@@ -77,7 +77,7 @@ const KycManagement = () => {
     setKycDetailLoading(true);
     setSelectedAgentKyc(null);
     onDetailOpen();
-    
+
     try {
       const authToken = localStorage.getItem("authToken");
       const response = await axios.get(AdminGetAgentKycAPI(agentId), {
@@ -110,7 +110,7 @@ const KycManagement = () => {
   const approveKyc = async () => {
     if (!selectedAgentKyc) return;
     setActionLoading(true);
-    
+
     try {
       const authToken = localStorage.getItem("authToken");
       const response = await axios.post(
@@ -256,9 +256,9 @@ const KycManagement = () => {
   );
 
   const actionTemplate = (rowData) => (
-    <Button 
-      size="sm" 
-      colorScheme="blue" 
+    <Button
+      size="sm"
+      colorScheme="blue"
       variant="outline"
       onClick={() => viewKycDetails(rowData.agentId)}
     >
@@ -273,8 +273,8 @@ const KycManagement = () => {
           <Flex justify="space-between" align="center" wrap="wrap" gap={4}>
             <Text fontSize="xl" fontWeight="bold">KYC Verification Management</Text>
             <HStack spacing={4}>
-              <Select 
-                placeholder="Filter by status" 
+              <Select
+                placeholder="Filter by status"
                 width="200px"
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
@@ -290,8 +290,8 @@ const KycManagement = () => {
                 <InputLeftElement>
                   <SearchIcon color="gray.500" />
                 </InputLeftElement>
-                <Input 
-                  placeholder="Search agents..." 
+                <Input
+                  placeholder="Search agents..."
                   value={globalFilter}
                   onChange={(e) => setGlobalFilter(e.target.value)}
                 />
@@ -305,7 +305,7 @@ const KycManagement = () => {
               <Spinner size="xl" />
             </Flex>
           ) : (
-            <DataTable 
+            <DataTable
               value={kycList}
               paginator
               rows={10}
@@ -384,18 +384,18 @@ const KycManagement = () => {
                           <Text fontSize="sm" color="gray.500">Phone</Text>
                           <Text>{selectedAgentKyc.kyc?.verificationPhone || "-"}</Text>
                         </Box>
-                          {selectedAgentKyc.kyc?.identityDocumentUrl && (
-                            <Box>
-                              <Text fontSize="sm" color="gray.500">ID Document</Text>
-                              <a href={selectedAgentKyc.kyc.identityDocumentUrl} target="_blank" rel="noopener noreferrer">
-                                <img
-                                  src={selectedAgentKyc.kyc.identityDocumentUrl}
-                                  alt="ID Document"
-                                  style={{ maxWidth: 120, maxHeight: 120, borderRadius: 8, border: '1px solid #eee', marginTop: 4 }}
-                                />
-                              </a>
-                            </Box>
-                          )}
+                        {selectedAgentKyc.kyc?.identityDocumentUrl && (
+                          <Box>
+                            <Text fontSize="sm" color="gray.500">ID Document</Text>
+                            <a href={selectedAgentKyc.kyc.identityDocumentUrl} target="_blank" rel="noopener noreferrer">
+                              <img
+                                src={selectedAgentKyc.kyc.identityDocumentUrl}
+                                alt="ID Document"
+                                style={{ maxWidth: 120, maxHeight: 120, borderRadius: 8, border: '1px solid #eee', marginTop: 4 }}
+                              />
+                            </a>
+                          </Box>
+                        )}
                       </SimpleGrid>
                     </Box>
                   </>
@@ -428,18 +428,18 @@ const KycManagement = () => {
                           <Text fontSize="sm" color="gray.500">State/LGA</Text>
                           <Text>{selectedAgentKyc.kyc?.businessState}{selectedAgentKyc.kyc?.businessLga ? `, ${selectedAgentKyc.kyc.businessLGA}` : ''}</Text>
                         </Box>
-                          {selectedAgentKyc.kyc?.cacDocumentUrl && (
-                            <Box>
-                              <Text fontSize="sm" color="gray.500">CAC Document</Text>
-                              <a href={selectedAgentKyc.kyc.cacDocumentUrl} target="_blank" rel="noopener noreferrer">
-                                <img
-                                  src={selectedAgentKyc.kyc.cacDocumentUrl}
-                                  alt="CAC Document"
-                                  style={{ maxWidth: 120, maxHeight: 120, borderRadius: 8, border: '1px solid #eee', marginTop: 4 }}
-                                />
-                              </a>
-                            </Box>
-                          )}
+                        {selectedAgentKyc.kyc?.cacDocumentUrl && (
+                          <Box>
+                            <Text fontSize="sm" color="gray.500">CAC Document</Text>
+                            <a href={selectedAgentKyc.kyc.cacDocumentUrl} target="_blank" rel="noopener noreferrer">
+                              <img
+                                src={selectedAgentKyc.kyc.cacDocumentUrl}
+                                alt="CAC Document"
+                                style={{ maxWidth: 120, maxHeight: 120, borderRadius: 8, border: '1px solid #eee', marginTop: 4 }}
+                              />
+                            </a>
+                          </Box>
+                        )}
                       </SimpleGrid>
                     </Box>
                   </>
@@ -492,17 +492,17 @@ const KycManagement = () => {
           <ModalFooter>
             {selectedAgentKyc && selectedAgentKyc.kyc?.status !== 'verified' && (
               <>
-                <Button 
-                  colorScheme="green" 
-                  mr={3} 
+                <Button
+                  colorScheme="green"
+                  mr={3}
                   onClick={approveKyc}
                   isLoading={actionLoading}
                 >
                   Approve KYC
                 </Button>
-                <Button 
-                  colorScheme="red" 
-                  variant="outline" 
+                <Button
+                  colorScheme="red"
+                  variant="outline"
                   onClick={openRejectModal}
                 >
                   Reject
@@ -523,7 +523,7 @@ const KycManagement = () => {
           <ModalBody>
             <FormControl>
               <FormLabel>Rejection Reason</FormLabel>
-              <Textarea 
+              <Textarea
                 placeholder="Enter reason for rejection (min 10 characters)"
                 value={rejectReason}
                 onChange={(e) => setRejectReason(e.target.value)}
@@ -532,8 +532,8 @@ const KycManagement = () => {
             </FormControl>
           </ModalBody>
           <ModalFooter>
-            <Button 
-              colorScheme="red" 
+            <Button
+              colorScheme="red"
               onClick={rejectKyc}
               isLoading={actionLoading}
               isDisabled={rejectReason.trim().length < 10}

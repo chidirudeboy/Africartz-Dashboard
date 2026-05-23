@@ -384,6 +384,18 @@ const KycManagement = () => {
                           <Text fontSize="sm" color="gray.500">Phone</Text>
                           <Text>{selectedAgentKyc.kyc?.verificationPhone || "-"}</Text>
                         </Box>
+                          {selectedAgentKyc.kyc?.identityDocumentUrl && (
+                            <Box>
+                              <Text fontSize="sm" color="gray.500">ID Document</Text>
+                              <a href={selectedAgentKyc.kyc.identityDocumentUrl} target="_blank" rel="noopener noreferrer">
+                                <img
+                                  src={selectedAgentKyc.kyc.identityDocumentUrl}
+                                  alt="ID Document"
+                                  style={{ maxWidth: 120, maxHeight: 120, borderRadius: 8, border: '1px solid #eee', marginTop: 4 }}
+                                />
+                              </a>
+                            </Box>
+                          )}
                       </SimpleGrid>
                     </Box>
                   </>
@@ -416,6 +428,18 @@ const KycManagement = () => {
                           <Text fontSize="sm" color="gray.500">State/LGA</Text>
                           <Text>{selectedAgentKyc.kyc?.businessState}{selectedAgentKyc.kyc?.businessLga ? `, ${selectedAgentKyc.kyc.businessLGA}` : ''}</Text>
                         </Box>
+                          {selectedAgentKyc.kyc?.cacDocumentUrl && (
+                            <Box>
+                              <Text fontSize="sm" color="gray.500">CAC Document</Text>
+                              <a href={selectedAgentKyc.kyc.cacDocumentUrl} target="_blank" rel="noopener noreferrer">
+                                <img
+                                  src={selectedAgentKyc.kyc.cacDocumentUrl}
+                                  alt="CAC Document"
+                                  style={{ maxWidth: 120, maxHeight: 120, borderRadius: 8, border: '1px solid #eee', marginTop: 4 }}
+                                />
+                              </a>
+                            </Box>
+                          )}
                       </SimpleGrid>
                     </Box>
                   </>

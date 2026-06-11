@@ -15,6 +15,7 @@ import RemovedApartments from "./Pages/Admin/RemovedApartments/Index";
 import ResubmittedApartments from "./Pages/Admin/ResubmittedApartments/Index";
 import Bookings from "./Pages/Admin/Bookings/Index";
 import Reservations from "./Pages/Admin/Reservations/Index";
+import Chats from "./Pages/Admin/Chats/Index";
 import Agent from "./Pages/Admin/Agents/Index";
 import AgentWallets from "./Pages/Admin/AgentWallets/Index";
 import Blogs from "./Pages/Admin/Blogs/Index";
@@ -46,6 +47,7 @@ const Authorize = () => {
 						<Route path="/admin/review-resubmitted" element={<ResubmittedApartments />} />
 						<Route path="/admin/bookings" element={<Bookings />} />
 						<Route path="/admin/reservations" element={<Reservations />} />
+						<Route path="/admin/chats" element={<Chats />} />
 						<Route path="/admin/agents" element={<Agent />} />
 						<Route path="/admin/agent-wallets" element={<AgentWallets />} />
 						<Route path="/admin/blogs" element={<Blogs />} />

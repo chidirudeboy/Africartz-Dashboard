@@ -44,6 +44,7 @@ export const AdminReleaseBookingPayoutAPI = (bookingId) => endpoint(`/admin/book
 
 // Reservations Endpoints
 export const AdminGetAllReservationsAPI = endpoint("/admin/reservations/all-agents");
+export const AdminAcceptReservationAPI = (reservationId) => endpoint(`/admin/reservations/${reservationId}/accept`);
 
 
 // ≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠OLD≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠

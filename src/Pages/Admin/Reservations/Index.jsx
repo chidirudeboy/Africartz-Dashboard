@@ -20,7 +20,16 @@ import {
 	StatLabel,
 	StatNumber,
 	StatHelpText,
-	Avatar
+	Avatar,
+	Button,
+	Modal,
+	ModalOverlay,
+	ModalContent,
+	ModalHeader,
+	ModalBody,
+	ModalFooter,
+	ModalCloseButton,
+	Textarea
 } from '@chakra-ui/react';
 import { FaSearch } from 'react-icons/fa';
 import { Column } from "primereact/column";
@@ -28,7 +37,7 @@ import { DataTable } from "primereact/datatable";
 import Card from "../../../components/Card/Card.js";
 import CardBody from "../../../components/Card/CardBody.js";
 import CardHeader from "../../../components/Card/CardHeader.js";
-import { AdminGetAllReservationsAPI } from '../../../Endpoints';
+import { AdminAcceptReservationAPI, AdminGetAllReservationsAPI } from '../../../Endpoints';
 import { formatPhoneNumber } from '../../../utils/phone';
 
 const ReservationsIndex = () => {
@@ -48,6 +57,10 @@ const ReservationsIndex = () => {
 		pages: 1,
 		total: 0
 	});
+	const [acceptModalOpen, setAcceptModalOpen] = useState(false);
+	const [selectedReservation, setSelectedReservation] = useState(null);
+	const [acceptReason, setAcceptReason] = useState('');
+	const [accepting, setAccepting] = useState(false);
 	const toast = useToast();
 
 	const fetchAllReservations = useCallback(async () => {
@@ -124,10 +137,94 @@ const ReservationsIndex = () => {
 	const getReservationType = (type) => {
 		const types = {
 			'normal': 'Normal',
-			'emergency': 'Emergency',
-			'extended': 'Extended'
+			'party': 'Party',
+			'photo': 'Photo',
+			'movie': 'Movie'
 		};
 		return types[type] || type;
+	};
+
+	const getReservationId = (reservation) => reservation?._id || reservation?.id;
+	const canAdminAccept = (reservation) => reservation?.status === 'pending';
+
+	const openAcceptModal = (reservation) => {
+		setSelectedReservation(reservation);
+		setAcceptReason('');
+		setAcceptModalOpen(true);
+	};
+
+	const closeAcceptModal = () => {
+		if (accepting) return;
+		setAcceptModalOpen(false);
+		setSelectedReservation(null);
+		setAcceptReason('');
+	};
+
+	const handleAdminAccept = async () => {
+		const reservationId = getReservationId(selectedReservation);
+
+		if (!reservationId) {
+			toast({
+				title: "Missing reservation ID",
+				description: "This reservation is missing an ID. Please refresh and try again.",
+				status: "error",
+				duration: 4000,
+				isClosable: true,
+			});
+			return;
+		}
+
+		if (!acceptReason.trim()) {
+			toast({
+				title: "Reason required",
+				description: "Please provide a reason for accepting this reservation on behalf of the agent.",
+				status: "warning",
+				duration: 4000,
+				isClosable: true,
+			});
+			return;
+		}
+
+		try {
+			setAccepting(true);
+			const token = localStorage.getItem('authToken');
+
+			const response = await fetch(AdminAcceptReservationAPI(reservationId), {
+				method: 'POST',
+				headers: {
+					'Authorization': `Bearer ${token}`,
+					'Content-Type': 'application/json'
+				},
+				body: JSON.stringify({ reason: acceptReason.trim() })
+			});
+
+			const data = await response.json().catch(() => ({}));
+
+			if (!response.ok) {
+				throw new Error(data?.error || data?.message || 'Failed to accept reservation');
+			}
+
+			toast({
+				title: "Reservation accepted",
+				description: "The reservation has been accepted on behalf of the agent.",
+				status: "success",
+				duration: 4000,
+				isClosable: true,
+			});
+
+			closeAcceptModal();
+			fetchAllReservations();
+		} catch (err) {
+			toast({
+				title: "Acceptance failed",
+				description: err.message || "Unable to accept reservation",
+				status: "error",
+				duration: 5000,
+				isClosable: true,
+			});
+		} finally {
+			setAccepting(false);
+		}
 	};
 
 	// Template functions for DataTable
@@ -186,9 +283,16 @@ const ReservationsIndex = () => {
 
 	const statusTemplate = (rowData) => {
 		return (
-			<Badge colorScheme={getStatusColor(rowData.status)} size="sm" borderRadius="full" px={3} py={1}>
-				{rowData.status}
-			</Badge>
+			<VStack align="start" spacing={1}>
+				<Badge colorScheme={getStatusColor(rowData.status)} size="sm" borderRadius="full" px={3} py={1}>
+					{rowData.status}
+				</Badge>
+				{rowData.acceptedOnBehalfOfAgent && (
+					<Text fontSize="xs" color="orange.500" fontWeight="medium">
+						Admin override
+					</Text>
+				)}
+			</VStack>
 		);
 	};
 
@@ -210,6 +314,55 @@ const ReservationsIndex = () => {
 			<Text fontSize="sm" fontFamily="mono" color="gray.600">
 				{rowData._id ? rowData._id.slice(-8) : 'N/A'}
 			</Text>
+		);
+	};
+
+	const acceptedByTemplate = (rowData) => {
+		const acceptedBy = rowData?.adminAcceptedById;
+		if (!acceptedBy) {
+			return <Text fontSize="sm" color="gray.400">N/A</Text>;
+		}
+
+		const fullName = [acceptedBy.firstName, acceptedBy.lastName].filter(Boolean).join(' ');
+
+		return (
+			<VStack align="start" spacing={0}>
+				<Text fontSize="sm" fontWeight="medium">
+					{fullName || acceptedBy.email || 'Admin'}
+				</Text>
+				{acceptedBy.email && (
+					<Text fontSize="xs" color="gray.500">
+						{acceptedBy.email}
+					</Text>
+				)}
+			</VStack>
+		);
+	};
+
+	const reasonTemplate = (rowData) => {
+		if (!rowData?.adminAcceptanceReason) {
+			return <Text fontSize="sm" color="gray.400">N/A</Text>;
+		}
+
+		return (
+			<Text fontSize="sm" color="gray.700" noOfLines={2}>
+				{rowData.adminAcceptanceReason}
+			</Text>
+		);
+	};
+
+	const actionTemplate = (rowData) => {
+		const canAccept = canAdminAccept(rowData);
+		return (
+			<Button
+				size="sm"
+				colorScheme="green"
+				variant={canAccept ? "solid" : "outline"}
+				isDisabled={!canAccept}
+				onClick={() => openAcceptModal(rowData)}
+			>
+				Accept
+			</Button>
 		);
 	};
 
@@ -478,6 +631,29 @@ const ReservationsIndex = () => {
 									></Column>
 
 									<Column
+										field="adminAcceptedById"
+										header="Accepted By"
+										body={acceptedByTemplate}
+										style={{ width: "14%", padding: "16px" }}
+										headerStyle={{ backgroundColor: "#f8f9fa", fontWeight: "600", padding: "16px" }}
+									></Column>
+
+									<Column
+										field="adminAcceptanceReason"
+										header="Acceptance Reason"
+										body={reasonTemplate}
+										style={{ width: "14%", padding: "16px" }}
+										headerStyle={{ backgroundColor: "#f8f9fa", fontWeight: "600", padding: "16px" }}
+									></Column>
+
+									<Column
+										header="Action"
+										body={actionTemplate}
+										style={{ width: "10%", padding: "16px" }}
+										headerStyle={{ backgroundColor: "#f8f9fa", fontWeight: "600", padding: "16px" }}
+									></Column>
+
+									<Column
 										field="createdAt"
 										header="Created Date & Time"
 										body={(row) => (
@@ -508,6 +684,43 @@ const ReservationsIndex = () => {
 							</Box>
 						</CardBody>
 					</Card>
+
+					<Modal isOpen={acceptModalOpen} onClose={closeAcceptModal} isCentered>
+						<ModalOverlay />
+						<ModalContent>
+							<ModalHeader>Accept Reservation</ModalHeader>
+							<ModalCloseButton />
+							<ModalBody>
+								<VStack align="stretch" spacing={4}>
+									<Text color="gray.600">
+										You are about to accept this reservation on behalf of the agent for{' '}
+										<Text as="span" fontWeight="bold">
+											{selectedReservation?.apartmentName || 'this apartment'}
+										</Text>.
+									</Text>
+									<Box>
+										<Text fontSize="sm" fontWeight="medium" mb={2}>
+											Reason
+										</Text>
+										<Textarea
+											placeholder="Why is admin accepting this reservation on behalf of the agent?"
+											value={acceptReason}
+											onChange={(e) => setAcceptReason(e.target.value)}
+											rows={4}
+										/>
+									</Box>
+								</VStack>
+							</ModalBody>
+							<ModalFooter>
+								<Button variant="ghost" mr={3} onClick={closeAcceptModal} isDisabled={accepting}>
+									Cancel
+								</Button>
+								<Button colorScheme="green" onClick={handleAdminAccept} isLoading={accepting}>
+									Accept Reservation
+								</Button>
+							</ModalFooter>
+						</ModalContent>
+					</Modal>
 				</Fragment>
 			)}
 		</Flex>

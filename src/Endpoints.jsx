@@ -45,6 +45,8 @@ export const AdminReleaseBookingPayoutAPI = (bookingId) => endpoint(`/admin/book
 // Reservations Endpoints
 export const AdminGetAllReservationsAPI = endpoint("/admin/reservations/all-agents");
 export const AdminAcceptReservationAPI = (reservationId) => endpoint(`/admin/reservations/${reservationId}/accept`);
+export const AdminGetAllChatsAPI = endpoint("/chat/admin/chats");
+export const AdminGetChatMessagesAPI = (chatId) => endpoint(`/chat/admin/chats/${chatId}/messages`);
 
 
 // ≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠OLD≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠

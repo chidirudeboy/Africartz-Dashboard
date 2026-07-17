@@ -155,6 +155,7 @@ const AllBookings = () => {
     }));
   };
 
+
   const handlePageChange = (newPage) => {
     setFilters(prev => ({
       ...prev,

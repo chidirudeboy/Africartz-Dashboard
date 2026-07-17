@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import axios from 'axios';
 import {
   Box,
   Text,
@@ -34,7 +35,15 @@ import {
   FormControl,
   FormLabel
 } from '@chakra-ui/react';
-import { AdminCreateBackfillBookingAPI, AdminGetAllBookingsAPI, AdminReleaseBookingPayoutAPI } from '../../../Endpoints';
+import SelectSearch from 'react-select';
+import {
+  AdminCreateBackfillBookingAPI,
+  AdminGetAgentAPI,
+  AdminGetAllBookingsAPI,
+  AdminGetApprovedApartmentsAPI,
+  AdminGetUsersAPI,
+  AdminReleaseBookingPayoutAPI
+} from '../../../Endpoints';
 
 const AllBookings = () => {
   const [bookings, setBookings] = useState([]);
@@ -59,6 +68,11 @@ const AllBookings = () => {
   const [releasing, setReleasing] = useState(false);
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [creating, setCreating] = useState(false);
+  const [lookupLoading, setLookupLoading] = useState(false);
+  const [lookupLoaded, setLookupLoaded] = useState(false);
+  const [agentOptions, setAgentOptions] = useState([]);
+  const [userOptions, setUserOptions] = useState([]);
+  const [propertyOptions, setPropertyOptions] = useState([]);
   const [backfillForm, setBackfillForm] = useState({
     mode: 'historical_backfill',
     payoutMode: 'wallet_only',
@@ -76,6 +90,20 @@ const AllBookings = () => {
     note: '',
   });
   const toast = useToast();
+  const selectStyles = {
+    menuPortal: (base) => ({ ...base, zIndex: 2000 }),
+    menu: (base) => ({ ...base, zIndex: 2000 }),
+    control: (base, state) => ({
+      ...base,
+      minHeight: '48px',
+      borderRadius: '0.75rem',
+      borderColor: state.isFocused ? '#3182ce' : '#E2E8F0',
+      boxShadow: state.isFocused ? '0 0 0 1px #3182ce' : 'none',
+      '&:hover': {
+        borderColor: state.isFocused ? '#3182ce' : '#CBD5E0'
+      }
+    })
+  };
 
 
   const fetchAllBookings = useCallback(async () => {
@@ -200,6 +228,9 @@ const AllBookings = () => {
       note: '',
     });
     setCreateModalOpen(true);
+    if (!lookupLoaded) {
+      fetchLookupData();
+    }
   };
 
   const closeCreateModal = () => {
@@ -210,6 +241,74 @@ const AllBookings = () => {
   const updateBackfillForm = (key, value) => {
     setBackfillForm((prev) => ({ ...prev, [key]: value }));
   };
+
+  const fetchLookupData = useCallback(async () => {
+    try {
+      setLookupLoading(true);
+      const authToken = localStorage.getItem('authToken');
+      if (!authToken) {
+        throw new Error('No authentication token found');
+      }
+
+      const headers = {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${authToken}`
+      };
+
+      const [agentsResponse, usersResponse, propertiesResponse] = await Promise.all([
+        axios.get(AdminGetAgentAPI, { headers }),
+        axios.get(AdminGetUsersAPI, { headers }),
+        axios.get(AdminGetApprovedApartmentsAPI, { headers })
+      ]);
+
+      const nextAgentOptions = (agentsResponse.data?.data || [])
+        .map((agent) => ({
+          value: agent._id,
+          label: `${agent.firstName || ''} ${agent.lastName || ''}`.trim() || agent.email,
+          email: agent.email,
+          phone: agent.phone
+        }))
+        .sort((a, b) => a.label.localeCompare(b.label));
+
+      const nextUserOptions = (usersResponse.data?.data || [])
+        .map((user) => ({
+          value: user._id,
+          label: `${user.first_name || ''} ${user.last_name || ''}`.trim() || user.email,
+          email: user.email,
+          phone: user.phone
+        }))
+        .sort((a, b) => a.label.localeCompare(b.label));
+
+      const nextPropertyOptions = (propertiesResponse.data?.apartments || [])
+        .map((property) => ({
+          value: property._id,
+          label: `${property.apartmentName} - ${property.city}, ${property.state}`,
+          apartmentName: property.apartmentName,
+          city: property.city,
+          state: property.state,
+          agentId: typeof property.agentId === 'object' ? property.agentId?._id : property.agentId,
+          agentName: typeof property.agentId === 'object'
+            ? `${property.agentId?.firstName || ''} ${property.agentId?.lastName || ''}`.trim()
+            : ''
+        }))
+        .sort((a, b) => a.label.localeCompare(b.label));
+
+      setAgentOptions(nextAgentOptions);
+      setUserOptions(nextUserOptions);
+      setPropertyOptions(nextPropertyOptions);
+      setLookupLoaded(true);
+    } catch (err) {
+      toast({
+        title: 'Lookup load failed',
+        description: err.response?.data?.message || err.message || 'Failed to load agents, users, and properties',
+        status: 'error',
+        duration: 5000,
+        isClosable: true
+      });
+    } finally {
+      setLookupLoading(false);
+    }
+  }, [toast]);
 
   const closeReleaseModal = () => {
     if (releasing) return;
@@ -365,6 +464,10 @@ const AllBookings = () => {
       setCreating(false);
     }
   };
+
+  const selectedAgentOption = agentOptions.find((option) => option.value === backfillForm.agentId) || null;
+  const selectedUserOption = userOptions.find((option) => option.value === backfillForm.userId) || null;
+  const selectedPropertyOption = propertyOptions.find((option) => option.value === backfillForm.propertyId) || null;
 
   if (loading && (!bookings || bookings.length === 0)) {
     return (
@@ -694,15 +797,67 @@ const AllBookings = () => {
                 </FormControl>
                 <FormControl>
                   <FormLabel>Agent ID</FormLabel>
-                  <Input value={backfillForm.agentId} onChange={(e) => updateBackfillForm('agentId', e.target.value)} placeholder="Mongo ObjectId" />
+                  <SelectSearch
+                    isClearable
+                    isSearchable
+                    options={agentOptions}
+                    value={selectedAgentOption}
+                    onChange={(option) => updateBackfillForm('agentId', option?.value || '')}
+                    placeholder={lookupLoading ? 'Loading agents...' : 'Search and select an agent'}
+                    menuPortalTarget={document.body}
+                    styles={selectStyles}
+                    formatOptionLabel={(option) => (
+                      <Box>
+                        <Text fontWeight="medium">{option.label}</Text>
+                        <Text fontSize="xs" color="gray.500">{option.email}</Text>
+                      </Box>
+                    )}
+                  />
                 </FormControl>
                 <FormControl>
                   <FormLabel>User ID</FormLabel>
-                  <Input value={backfillForm.userId} onChange={(e) => updateBackfillForm('userId', e.target.value)} placeholder="Mongo ObjectId" />
+                  <SelectSearch
+                    isClearable
+                    isSearchable
+                    options={userOptions}
+                    value={selectedUserOption}
+                    onChange={(option) => updateBackfillForm('userId', option?.value || '')}
+                    placeholder={lookupLoading ? 'Loading users...' : 'Search and select a user'}
+                    menuPortalTarget={document.body}
+                    styles={selectStyles}
+                    formatOptionLabel={(option) => (
+                      <Box>
+                        <Text fontWeight="medium">{option.label}</Text>
+                        <Text fontSize="xs" color="gray.500">{option.email}</Text>
+                      </Box>
+                    )}
+                  />
                 </FormControl>
                 <FormControl>
                   <FormLabel>Property ID</FormLabel>
-                  <Input value={backfillForm.propertyId} onChange={(e) => updateBackfillForm('propertyId', e.target.value)} placeholder="Mongo ObjectId" />
+                  <SelectSearch
+                    isClearable
+                    isSearchable
+                    options={propertyOptions}
+                    value={selectedPropertyOption}
+                    onChange={(option) => {
+                      updateBackfillForm('propertyId', option?.value || '');
+                      if (option?.agentId) {
+                        updateBackfillForm('agentId', option.agentId);
+                      }
+                    }}
+                    placeholder={lookupLoading ? 'Loading properties...' : 'Search and select a property'}
+                    menuPortalTarget={document.body}
+                    styles={selectStyles}
+                    formatOptionLabel={(option) => (
+                      <Box>
+                        <Text fontWeight="medium">{option.apartmentName || option.label}</Text>
+                        <Text fontSize="xs" color="gray.500">
+                          {option.city}, {option.state}{option.agentName ? ` - ${option.agentName}` : ''}
+                        </Text>
+                      </Box>
+                    )}
+                  />
                 </FormControl>
                 <FormControl>
                   <FormLabel>Request type</FormLabel>

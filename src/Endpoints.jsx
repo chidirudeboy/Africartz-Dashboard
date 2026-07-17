@@ -41,6 +41,7 @@ export const AdminRejectApartment = (APARTMENT_ID) => endpoint(`/admin/${APARTME
 export const AdminGetBookingsSummaryAPI = endpoint("/admin/bookings");
 export const AdminGetAllBookingsAPI = endpoint("/admin/bookings/all");
 export const AdminCreateBackfillBookingAPI = endpoint("/admin/bookings/backfill");
+export const AdminPreviewBackfillBookingPricingAPI = endpoint("/admin/bookings/backfill/price-preview");
 export const AdminReleaseBookingPayoutAPI = (bookingId) => endpoint(`/admin/bookings/${bookingId}/release-payout`);
 
 // Reservations Endpoints

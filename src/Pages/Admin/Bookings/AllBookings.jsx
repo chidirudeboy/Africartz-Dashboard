@@ -42,6 +42,7 @@ import {
   AdminGetAllBookingsAPI,
   AdminGetApprovedApartmentsAPI,
   AdminGetUsersAPI,
+  AdminPreviewBackfillBookingPricingAPI,
   AdminReleaseBookingPayoutAPI
 } from '../../../Endpoints';
 
@@ -70,12 +71,15 @@ const AllBookings = () => {
   const [creating, setCreating] = useState(false);
   const [lookupLoading, setLookupLoading] = useState(false);
   const [lookupLoaded, setLookupLoaded] = useState(false);
+  const [pricingLoading, setPricingLoading] = useState(false);
   const [agentOptions, setAgentOptions] = useState([]);
   const [userOptions, setUserOptions] = useState([]);
   const [propertyOptions, setPropertyOptions] = useState([]);
+  const [pricingPreview, setPricingPreview] = useState(null);
   const [backfillForm, setBackfillForm] = useState({
     mode: 'historical_backfill',
     payoutMode: 'wallet_only',
+    overrideAutoPricing: false,
     agentId: '',
     userId: '',
     propertyId: '',
@@ -151,6 +155,7 @@ const AllBookings = () => {
     }));
   };
 
+
   const handlePageChange = (newPage) => {
     setFilters(prev => ({
       ...prev,
@@ -214,6 +219,7 @@ const AllBookings = () => {
     setBackfillForm({
       mode: 'historical_backfill',
       payoutMode: 'wallet_only',
+      overrideAutoPricing: false,
       agentId: '',
       userId: '',
       propertyId: '',
@@ -227,6 +233,7 @@ const AllBookings = () => {
       reservationType: 'normal',
       note: '',
     });
+    setPricingPreview(null);
     setCreateModalOpen(true);
     if (!lookupLoaded) {
       fetchLookupData();
@@ -236,11 +243,54 @@ const AllBookings = () => {
   const closeCreateModal = () => {
     if (creating) return;
     setCreateModalOpen(false);
+    setPricingPreview(null);
   };
 
   const updateBackfillForm = (key, value) => {
     setBackfillForm((prev) => ({ ...prev, [key]: value }));
   };
+
+  const fetchPricingPreview = useCallback(async (payload) => {
+    try {
+      setPricingLoading(true);
+      const token = localStorage.getItem('authToken');
+      const response = await fetch(AdminPreviewBackfillBookingPricingAPI, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(payload)
+      });
+
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(data?.error || data?.message || 'Failed to preview pricing');
+      }
+
+      const preview = data.data;
+      setPricingPreview(preview);
+      setBackfillForm((prev) => {
+        if (prev.overrideAutoPricing) return prev;
+        return {
+          ...prev,
+          actualPrice: String(preview.actualPrice ?? ''),
+          sellingPrice: String(preview.sellingPrice ?? '')
+        };
+      });
+    } catch (err) {
+      setPricingPreview(null);
+      toast({
+        title: 'Pricing preview failed',
+        description: err.message || 'Unable to calculate pricing',
+        status: 'warning',
+        duration: 5000,
+        isClosable: true
+      });
+    } finally {
+      setPricingLoading(false);
+    }
+  }, [toast]);
 
   const fetchLookupData = useCallback(async () => {
     try {
@@ -468,6 +518,36 @@ const AllBookings = () => {
   const selectedAgentOption = agentOptions.find((option) => option.value === backfillForm.agentId) || null;
   const selectedUserOption = userOptions.find((option) => option.value === backfillForm.userId) || null;
   const selectedPropertyOption = propertyOptions.find((option) => option.value === backfillForm.propertyId) || null;
+
+  useEffect(() => {
+    if (backfillForm.overrideAutoPricing) {
+      return;
+    }
+
+    if (!backfillForm.propertyId || !backfillForm.checkInDate || !backfillForm.checkOutDate || !backfillForm.reservationType) {
+      setPricingPreview(null);
+      setBackfillForm((prev) => ({
+        ...prev,
+        actualPrice: '',
+        sellingPrice: ''
+      }));
+      return;
+    }
+
+    fetchPricingPreview({
+      propertyId: backfillForm.propertyId,
+      checkInDate: backfillForm.checkInDate,
+      checkOutDate: backfillForm.checkOutDate,
+      reservationType: backfillForm.reservationType
+    });
+  }, [
+    backfillForm.propertyId,
+    backfillForm.checkInDate,
+    backfillForm.checkOutDate,
+    backfillForm.reservationType,
+    backfillForm.overrideAutoPricing,
+    fetchPricingPreview
+  ]);
 
   if (loading && (!bookings || bookings.length === 0)) {
     return (
@@ -890,13 +970,95 @@ const AllBookings = () => {
                 </FormControl>
                 <FormControl>
                   <FormLabel>Actual price</FormLabel>
-                  <Input type="number" value={backfillForm.actualPrice} onChange={(e) => updateBackfillForm('actualPrice', e.target.value)} />
+                  <Input
+                    type="number"
+                    value={backfillForm.actualPrice}
+                    onChange={(e) => updateBackfillForm('actualPrice', e.target.value)}
+                    isReadOnly={!backfillForm.overrideAutoPricing}
+                    bg={!backfillForm.overrideAutoPricing ? 'gray.50' : 'white'}
+                  />
                 </FormControl>
                 <FormControl>
                   <FormLabel>Selling price</FormLabel>
-                  <Input type="number" value={backfillForm.sellingPrice} onChange={(e) => updateBackfillForm('sellingPrice', e.target.value)} />
+                  <Input
+                    type="number"
+                    value={backfillForm.sellingPrice}
+                    onChange={(e) => updateBackfillForm('sellingPrice', e.target.value)}
+                    isReadOnly={!backfillForm.overrideAutoPricing}
+                    bg={!backfillForm.overrideAutoPricing ? 'gray.50' : 'white'}
+                  />
                 </FormControl>
               </SimpleGrid>
+              <FormControl display="flex" alignItems="center" justifyContent="space-between">
+                <Box>
+                  <FormLabel mb={0}>Override auto pricing</FormLabel>
+                  <Text fontSize="sm" color="gray.500">
+                    Leave off to keep pricing synced with the selected property and dates.
+                  </Text>
+                </Box>
+                <input
+                  type="checkbox"
+                  checked={backfillForm.overrideAutoPricing}
+                  onChange={(e) => {
+                    const checked = e.target.checked;
+                    setBackfillForm((prev) => ({ ...prev, overrideAutoPricing: checked }));
+                    if (!checked && backfillForm.propertyId && backfillForm.checkInDate && backfillForm.checkOutDate) {
+                      fetchPricingPreview({
+                        propertyId: backfillForm.propertyId,
+                        checkInDate: backfillForm.checkInDate,
+                        checkOutDate: backfillForm.checkOutDate,
+                        reservationType: backfillForm.reservationType
+                      });
+                    }
+                  }}
+                />
+              </FormControl>
+              <Box borderWidth="1px" borderColor="gray.200" borderRadius="xl" p={4} bg="gray.50">
+                <HStack justify="space-between" mb={2}>
+                  <Text fontWeight="semibold">Pricing breakdown</Text>
+                  {pricingLoading && <Text fontSize="sm" color="blue.500">Calculating...</Text>}
+                </HStack>
+                {pricingPreview ? (
+                  <SimpleGrid columns={{ base: 2, md: 4 }} spacing={4}>
+                    <Box>
+                      <Text fontSize="xs" color="gray.500">Actual price</Text>
+                      <Text fontWeight="bold">{formatCurrency(pricingPreview.actualPrice || 0)}</Text>
+                    </Box>
+                    <Box>
+                      <Text fontSize="xs" color="gray.500">Selling price</Text>
+                      <Text fontWeight="bold">{formatCurrency(pricingPreview.sellingPrice || 0)}</Text>
+                    </Box>
+                    <Box>
+                      <Text fontSize="xs" color="gray.500">Profit</Text>
+                      <Text fontWeight="bold" color="green.500">{formatCurrency(pricingPreview.profitAmount || 0)}</Text>
+                    </Box>
+                    <Box>
+                      <Text fontSize="xs" color="gray.500">Caution fee</Text>
+                      <Text fontWeight="bold">{formatCurrency(pricingPreview.cautionFee || 0)}</Text>
+                    </Box>
+                    <Box>
+                      <Text fontSize="xs" color="gray.500">Nights</Text>
+                      <Text fontWeight="bold">{pricingPreview.nights || 0}</Text>
+                    </Box>
+                    <Box>
+                      <Text fontSize="xs" color="gray.500">Service fee</Text>
+                      <Text fontWeight="bold">{formatCurrency(pricingPreview.breakdown?.serviceFee || 0)}</Text>
+                    </Box>
+                    <Box>
+                      <Text fontSize="xs" color="gray.500">Paystack fee</Text>
+                      <Text fontWeight="bold">{formatCurrency(pricingPreview.breakdown?.paystackFee || 0)}</Text>
+                    </Box>
+                    <Box>
+                      <Text fontSize="xs" color="gray.500">Payout to owner</Text>
+                      <Text fontWeight="bold">{formatCurrency(pricingPreview.payoutOwnerAmount || 0)}</Text>
+                    </Box>
+                  </SimpleGrid>
+                ) : (
+                  <Text fontSize="sm" color="gray.500">
+                    Select property, request type, check-in date, and check-out date to preview pricing.
+                  </Text>
+                )}
+              </Box>
               <FormControl>
                 <FormLabel>Internal note</FormLabel>
                 <Textarea

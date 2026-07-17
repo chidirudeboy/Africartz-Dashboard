@@ -30,9 +30,11 @@ import {
   ModalFooter,
   ModalCloseButton,
   Textarea,
-  useToast
+  useToast,
+  FormControl,
+  FormLabel
 } from '@chakra-ui/react';
-import { AdminGetAllBookingsAPI, AdminReleaseBookingPayoutAPI } from '../../../Endpoints';
+import { AdminCreateBackfillBookingAPI, AdminGetAllBookingsAPI, AdminReleaseBookingPayoutAPI } from '../../../Endpoints';
 
 const AllBookings = () => {
   const [bookings, setBookings] = useState([]);
@@ -55,6 +57,24 @@ const AllBookings = () => {
   const [selectedBooking, setSelectedBooking] = useState(null);
   const [releaseReason, setReleaseReason] = useState('');
   const [releasing, setReleasing] = useState(false);
+  const [createModalOpen, setCreateModalOpen] = useState(false);
+  const [creating, setCreating] = useState(false);
+  const [backfillForm, setBackfillForm] = useState({
+    mode: 'historical_backfill',
+    payoutMode: 'wallet_only',
+    agentId: '',
+    userId: '',
+    propertyId: '',
+    checkInDate: '',
+    checkOutDate: '',
+    bookingCreatedAt: '',
+    payoutReleasedAt: '',
+    withdrawnAt: '',
+    actualPrice: '',
+    sellingPrice: '',
+    reservationType: 'normal',
+    note: '',
+  });
   const toast = useToast();
 
 
@@ -162,6 +182,35 @@ const AllBookings = () => {
     setReleaseModalOpen(true);
   };
 
+  const openCreateModal = () => {
+    setBackfillForm({
+      mode: 'historical_backfill',
+      payoutMode: 'wallet_only',
+      agentId: '',
+      userId: '',
+      propertyId: '',
+      checkInDate: '',
+      checkOutDate: '',
+      bookingCreatedAt: '',
+      payoutReleasedAt: '',
+      withdrawnAt: '',
+      actualPrice: '',
+      sellingPrice: '',
+      reservationType: 'normal',
+      note: '',
+    });
+    setCreateModalOpen(true);
+  };
+
+  const closeCreateModal = () => {
+    if (creating) return;
+    setCreateModalOpen(false);
+  };
+
+  const updateBackfillForm = (key, value) => {
+    setBackfillForm((prev) => ({ ...prev, [key]: value }));
+  };
+
   const closeReleaseModal = () => {
     if (releasing) return;
     setReleaseModalOpen(false);
@@ -228,6 +277,92 @@ const AllBookings = () => {
       });
     } finally {
       setReleasing(false);
+    }
+  };
+
+  const handleCreateBackfillBooking = async () => {
+    if (!backfillForm.agentId || !backfillForm.userId || !backfillForm.propertyId) {
+      toast({
+        title: 'Missing IDs',
+        description: 'Agent ID, User ID, and Property ID are required.',
+        status: 'warning',
+        duration: 4000,
+        isClosable: true
+      });
+      return;
+    }
+
+    if (!backfillForm.checkInDate || !backfillForm.checkOutDate) {
+      toast({
+        title: 'Missing dates',
+        description: 'Check-in and check-out dates are required.',
+        status: 'warning',
+        duration: 4000,
+        isClosable: true
+      });
+      return;
+    }
+
+    if (!backfillForm.actualPrice || !backfillForm.sellingPrice) {
+      toast({
+        title: 'Missing prices',
+        description: 'Actual price and selling price are required.',
+        status: 'warning',
+        duration: 4000,
+        isClosable: true
+      });
+      return;
+    }
+
+    try {
+      setCreating(true);
+      const token = localStorage.getItem('authToken');
+      const payload = {
+        ...backfillForm,
+        actualPrice: Number(backfillForm.actualPrice),
+        sellingPrice: Number(backfillForm.sellingPrice),
+        payoutMode: backfillForm.mode === 'future_booking' ? 'wallet_only' : backfillForm.payoutMode,
+        bookingCreatedAt: backfillForm.bookingCreatedAt || undefined,
+        payoutReleasedAt: backfillForm.mode === 'historical_backfill' ? (backfillForm.payoutReleasedAt || undefined) : undefined,
+        withdrawnAt: backfillForm.mode === 'historical_backfill' && backfillForm.payoutMode === 'withdrawn'
+          ? backfillForm.withdrawnAt || undefined
+          : undefined,
+        note: backfillForm.note || undefined
+      };
+
+      const response = await fetch(AdminCreateBackfillBookingAPI, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(payload)
+      });
+
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(data?.error || data?.message || 'Failed to create backfill booking');
+      }
+
+      toast({
+        title: 'Booking created',
+        description: 'The manual booking record has been created successfully.',
+        status: 'success',
+        duration: 4000,
+        isClosable: true
+      });
+      closeCreateModal();
+      fetchAllBookings();
+    } catch (err) {
+      toast({
+        title: 'Creation failed',
+        description: err.message || 'Unable to create backfill booking',
+        status: 'error',
+        duration: 5000,
+        isClosable: true
+      });
+    } finally {
+      setCreating(false);
     }
   };
 
@@ -322,6 +457,9 @@ const AllBookings = () => {
               Page {pagination.page} of {pagination.pages}
             </Text>
           </HStack>
+          <Button colorScheme="blue" onClick={openCreateModal}>
+            Add Backfill Booking
+          </Button>
         </Box>
 
         {/* Bookings Table */}
@@ -348,7 +486,7 @@ const AllBookings = () => {
                     </Tr>
                   </Thead>
                   <Tbody>
-                    {bookings && bookings.filter(booking => !booking.transactionRef?.startsWith('Offline-')).map((booking, index) => (
+                    {bookings && bookings.map((booking, index) => (
                       <Tr key={getBookingId(booking) || index}>
                         <Td fontSize="sm" fontFamily="mono">
                           {getBookingId(booking) ? getBookingId(booking).slice(-8) : 'N/A'}
@@ -527,6 +665,99 @@ const AllBookings = () => {
               isLoading={releasing}
             >
               Release Payout
+            </Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
+
+      <Modal isOpen={createModalOpen} onClose={closeCreateModal} size="2xl" scrollBehavior="inside">
+        <ModalOverlay />
+        <ModalContent>
+          <ModalHeader>Create Historical or Future Booking</ModalHeader>
+          <ModalCloseButton />
+          <ModalBody>
+            <VStack spacing={4} align="stretch">
+              <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
+                <FormControl>
+                  <FormLabel>Mode</FormLabel>
+                  <Select value={backfillForm.mode} onChange={(e) => updateBackfillForm('mode', e.target.value)}>
+                    <option value="historical_backfill">Historical backfill</option>
+                    <option value="future_booking">Future booking</option>
+                  </Select>
+                </FormControl>
+                <FormControl isDisabled={backfillForm.mode === 'future_booking'}>
+                  <FormLabel>Payout status</FormLabel>
+                  <Select value={backfillForm.payoutMode} onChange={(e) => updateBackfillForm('payoutMode', e.target.value)}>
+                    <option value="wallet_only">Leave in wallet</option>
+                    <option value="withdrawn">Mark as withdrawn</option>
+                  </Select>
+                </FormControl>
+                <FormControl>
+                  <FormLabel>Agent ID</FormLabel>
+                  <Input value={backfillForm.agentId} onChange={(e) => updateBackfillForm('agentId', e.target.value)} placeholder="Mongo ObjectId" />
+                </FormControl>
+                <FormControl>
+                  <FormLabel>User ID</FormLabel>
+                  <Input value={backfillForm.userId} onChange={(e) => updateBackfillForm('userId', e.target.value)} placeholder="Mongo ObjectId" />
+                </FormControl>
+                <FormControl>
+                  <FormLabel>Property ID</FormLabel>
+                  <Input value={backfillForm.propertyId} onChange={(e) => updateBackfillForm('propertyId', e.target.value)} placeholder="Mongo ObjectId" />
+                </FormControl>
+                <FormControl>
+                  <FormLabel>Request type</FormLabel>
+                  <Select value={backfillForm.reservationType} onChange={(e) => updateBackfillForm('reservationType', e.target.value)}>
+                    <option value="normal">Normal stay</option>
+                    <option value="party">Party</option>
+                    <option value="movie">Movie shoot</option>
+                    <option value="photo">Photo shoot</option>
+                  </Select>
+                </FormControl>
+                <FormControl>
+                  <FormLabel>Check-in date</FormLabel>
+                  <Input type="datetime-local" value={backfillForm.checkInDate} onChange={(e) => updateBackfillForm('checkInDate', e.target.value)} />
+                </FormControl>
+                <FormControl>
+                  <FormLabel>Check-out date</FormLabel>
+                  <Input type="datetime-local" value={backfillForm.checkOutDate} onChange={(e) => updateBackfillForm('checkOutDate', e.target.value)} />
+                </FormControl>
+                <FormControl>
+                  <FormLabel>Booking created at</FormLabel>
+                  <Input type="datetime-local" value={backfillForm.bookingCreatedAt} onChange={(e) => updateBackfillForm('bookingCreatedAt', e.target.value)} />
+                </FormControl>
+                <FormControl isDisabled={backfillForm.mode === 'future_booking'}>
+                  <FormLabel>Payout released at</FormLabel>
+                  <Input type="datetime-local" value={backfillForm.payoutReleasedAt} onChange={(e) => updateBackfillForm('payoutReleasedAt', e.target.value)} />
+                </FormControl>
+                <FormControl isDisabled={backfillForm.mode === 'future_booking' || backfillForm.payoutMode !== 'withdrawn'}>
+                  <FormLabel>Withdrawn at</FormLabel>
+                  <Input type="datetime-local" value={backfillForm.withdrawnAt} onChange={(e) => updateBackfillForm('withdrawnAt', e.target.value)} />
+                </FormControl>
+                <FormControl>
+                  <FormLabel>Actual price</FormLabel>
+                  <Input type="number" value={backfillForm.actualPrice} onChange={(e) => updateBackfillForm('actualPrice', e.target.value)} />
+                </FormControl>
+                <FormControl>
+                  <FormLabel>Selling price</FormLabel>
+                  <Input type="number" value={backfillForm.sellingPrice} onChange={(e) => updateBackfillForm('sellingPrice', e.target.value)} />
+                </FormControl>
+              </SimpleGrid>
+              <FormControl>
+                <FormLabel>Internal note</FormLabel>
+                <Textarea
+                  value={backfillForm.note}
+                  onChange={(e) => updateBackfillForm('note', e.target.value)}
+                  placeholder="Optional note for why this booking is being backfilled"
+                />
+              </FormControl>
+            </VStack>
+          </ModalBody>
+          <ModalFooter>
+            <Button variant="ghost" mr={3} onClick={closeCreateModal} isDisabled={creating}>
+              Cancel
+            </Button>
+            <Button colorScheme="blue" onClick={handleCreateBackfillBooking} isLoading={creating}>
+              Create Booking
             </Button>
           </ModalFooter>
         </ModalContent>

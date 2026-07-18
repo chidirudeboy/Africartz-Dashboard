@@ -42,6 +42,7 @@ import {
   AdminGetAllBookingsAPI,
   AdminGetApprovedApartmentsAPI,
   AdminGetUsersAPI,
+  AdminManualSettleBookingAPI,
   AdminPreviewBackfillBookingPricingAPI,
   AdminReleaseBookingPayoutAPI
 } from '../../../Endpoints';
@@ -67,6 +68,15 @@ const AllBookings = () => {
   const [selectedBooking, setSelectedBooking] = useState(null);
   const [releaseReason, setReleaseReason] = useState('');
   const [releasing, setReleasing] = useState(false);
+  const [manualSettleModalOpen, setManualSettleModalOpen] = useState(false);
+  const [manualSettleBooking, setManualSettleBooking] = useState(null);
+  const [manualSettling, setManualSettling] = useState(false);
+  const [manualSettleForm, setManualSettleForm] = useState({
+    source: 'cash',
+    reason: '',
+    reference: '',
+    settledAt: ''
+  });
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [creating, setCreating] = useState(false);
   const [lookupLoading, setLookupLoading] = useState(false);
@@ -193,6 +203,7 @@ const AllBookings = () => {
       Boolean(booking?.payoutReleaseCodeHash)
     );
   };
+  const canManuallySettle = (booking) => ['payment_failed', 'pending_payment'].includes(booking?.status);
 
   const formatCurrency = (amount) => {
     return new Intl.NumberFormat('en-NG', {
@@ -213,6 +224,17 @@ const AllBookings = () => {
     setSelectedBooking(booking);
     setReleaseReason('');
     setReleaseModalOpen(true);
+  };
+
+  const openManualSettleModal = (booking) => {
+    setManualSettleBooking(booking);
+    setManualSettleForm({
+      source: 'cash',
+      reason: '',
+      reference: '',
+      settledAt: ''
+    });
+    setManualSettleModalOpen(true);
   };
 
   const openCreateModal = () => {
@@ -367,6 +389,18 @@ const AllBookings = () => {
     setReleaseReason('');
   };
 
+  const closeManualSettleModal = () => {
+    if (manualSettling) return;
+    setManualSettleModalOpen(false);
+    setManualSettleBooking(null);
+    setManualSettleForm({
+      source: 'cash',
+      reason: '',
+      reference: '',
+      settledAt: ''
+    });
+  };
+
   const handleAdminRelease = async () => {
     const bookingId = getBookingId(selectedBooking);
     if (!bookingId) {
@@ -426,6 +460,74 @@ const AllBookings = () => {
       });
     } finally {
       setReleasing(false);
+    }
+  };
+
+  const handleManualSettlement = async () => {
+    const bookingId = getBookingId(manualSettleBooking);
+    if (!bookingId) {
+      toast({
+        title: 'Missing booking ID',
+        description: 'This booking is missing an ID. Please refresh and try again.',
+        status: 'error',
+        duration: 4000,
+        isClosable: true
+      });
+      return;
+    }
+
+    if (!manualSettleForm.reason.trim()) {
+      toast({
+        title: 'Reason required',
+        description: 'Please provide a reason for confirming the offline payment.',
+        status: 'warning',
+        duration: 4000,
+        isClosable: true
+      });
+      return;
+    }
+
+    try {
+      setManualSettling(true);
+      const token = localStorage.getItem('authToken');
+      const response = await fetch(AdminManualSettleBookingAPI(bookingId), {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          source: manualSettleForm.source,
+          reason: manualSettleForm.reason.trim(),
+          reference: manualSettleForm.reference.trim() || undefined,
+          settledAt: manualSettleForm.settledAt || undefined
+        })
+      });
+
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(data?.error || data?.message || 'Failed to confirm offline payment');
+      }
+
+      toast({
+        title: 'Offline payment confirmed',
+        description: 'The booking has been restored to an active paid state.',
+        status: 'success',
+        duration: 5000,
+        isClosable: true
+      });
+      closeManualSettleModal();
+      fetchAllBookings();
+    } catch (err) {
+      toast({
+        title: 'Manual settlement failed',
+        description: err.message || 'Unable to confirm offline payment',
+        status: 'error',
+        duration: 5000,
+        isClosable: true
+      });
+    } finally {
+      setManualSettling(false);
     }
   };
 
@@ -661,6 +763,7 @@ const AllBookings = () => {
                       <Th>Check-out</Th>
                       <Th>Amount</Th>
                       <Th>Status</Th>
+                      <Th>Settlement</Th>
                       <Th>Payout</Th>
                       <Th>Released By</Th>
                       <Th>Release Reason</Th>
@@ -724,25 +827,54 @@ const AllBookings = () => {
                           </Badge>
                         </Td>
                         <Td>
+                          <VStack align="start" spacing={1}>
+                            <Badge colorScheme={booking.settlementStatus === 'settled' ? 'green' : booking.settlementStatus === 'failed' ? 'red' : 'orange'} size="sm">
+                              {booking.settlementStatus || 'pending'}
+                            </Badge>
+                            {booking.manuallySettledAt && (
+                              <>
+                                <Text fontSize="xs" color="gray.600">
+                                  Offline • {booking.manualSettlementSource || 'other'}
+                                </Text>
+                                <Text fontSize="xs" color="gray.500">
+                                  {formatDate(booking.manuallySettledAt)}
+                                </Text>
+                              </>
+                            )}
+                          </VStack>
+                        </Td>
+                        <Td>
                           <Badge colorScheme={getPayoutStatusColor(booking.payoutStatus || 'held')} size="sm">
                             {booking.payoutStatus || 'held'}
                           </Badge>
                         </Td>
                         <Td fontSize="sm">
-                          {booking.payoutReleasedByAdminId?.email || booking.payoutReleasedByAdminId || 'N/A'}
+                          {booking.payoutReleasedByAdminId?.email || booking.manuallySettledByAdminId?.email || booking.payoutReleasedByAdminId || 'N/A'}
                         </Td>
                         <Td fontSize="sm" maxW="220px">
-                          {booking.payoutReleaseReason || 'N/A'}
+                          {booking.payoutReleaseReason || booking.manualSettlementReason || 'N/A'}
                         </Td>
                         <Td>
-                          <Button
-                            size="xs"
-                            colorScheme="blue"
-                            isDisabled={!canReleasePayout(booking) || !getBookingId(booking)}
-                            onClick={() => openReleaseModal(booking)}
-                          >
-                            Release
-                          </Button>
+                          <VStack align="start" spacing={2}>
+                            <Button
+                              size="xs"
+                              colorScheme="blue"
+                              isDisabled={!canReleasePayout(booking) || !getBookingId(booking)}
+                              onClick={() => openReleaseModal(booking)}
+                            >
+                              Release
+                            </Button>
+                            {canManuallySettle(booking) && (
+                              <Button
+                                size="xs"
+                                colorScheme="orange"
+                                variant="outline"
+                                onClick={() => openManualSettleModal(booking)}
+                              >
+                                Mark Paid Offline
+                              </Button>
+                            )}
+                          </VStack>
                         </Td>
                         <Td fontSize="sm">{booking.createdAt ? formatDate(booking.createdAt) : 'N/A'}</Td>
                       </Tr>
@@ -848,6 +980,70 @@ const AllBookings = () => {
               isLoading={releasing}
             >
               Release Payout
+            </Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
+
+      <Modal isOpen={manualSettleModalOpen} onClose={closeManualSettleModal} isCentered>
+        <ModalOverlay />
+        <ModalContent>
+          <ModalHeader>Confirm Offline Payment</ModalHeader>
+          <ModalCloseButton />
+          <ModalBody>
+            <VStack align="stretch" spacing={4}>
+              <Text fontSize="sm" color="gray.600">
+                This will restore the failed booking to an active paid booking, recreate the payout hold flow, and send a fresh release code to the user.
+              </Text>
+              <FormControl>
+                <FormLabel>Payment source</FormLabel>
+                <Select
+                  value={manualSettleForm.source}
+                  onChange={(e) => setManualSettleForm((prev) => ({ ...prev, source: e.target.value }))}
+                >
+                  <option value="cash">Cash</option>
+                  <option value="bank_transfer">Bank transfer</option>
+                  <option value="pos">POS</option>
+                  <option value="other">Other</option>
+                </Select>
+              </FormControl>
+              <FormControl>
+                <FormLabel>Settled at</FormLabel>
+                <Input
+                  type="datetime-local"
+                  value={manualSettleForm.settledAt}
+                  onChange={(e) => setManualSettleForm((prev) => ({ ...prev, settledAt: e.target.value }))}
+                />
+              </FormControl>
+              <FormControl>
+                <FormLabel>Reference</FormLabel>
+                <Input
+                  value={manualSettleForm.reference}
+                  onChange={(e) => setManualSettleForm((prev) => ({ ...prev, reference: e.target.value }))}
+                  placeholder="Optional cash receipt / transfer reference"
+                />
+              </FormControl>
+              <FormControl isRequired>
+                <FormLabel>Reason</FormLabel>
+                <Textarea
+                  value={manualSettleForm.reason}
+                  onChange={(e) => setManualSettleForm((prev) => ({ ...prev, reason: e.target.value }))}
+                  placeholder="Explain why this failed payment is being confirmed offline"
+                  resize="vertical"
+                />
+              </FormControl>
+            </VStack>
+          </ModalBody>
+          <ModalFooter>
+            <Button variant="ghost" mr={3} onClick={closeManualSettleModal} isDisabled={manualSettling}>
+              Cancel
+            </Button>
+            <Button
+              colorScheme="orange"
+              onClick={handleManualSettlement}
+              isLoading={manualSettling}
+            >
+              Confirm Offline Payment
             </Button>
           </ModalFooter>
         </ModalContent>

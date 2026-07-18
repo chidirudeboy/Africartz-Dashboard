@@ -193,6 +193,21 @@ const AllBookings = () => {
   };
 
   const getBookingId = (booking) => booking?._id || booking?.id;
+  const getCalculatedNights = (checkInDate, checkOutDate) => {
+    if (!checkInDate || !checkOutDate) return null;
+
+    const checkIn = new Date(checkInDate);
+    const checkOut = new Date(checkOutDate);
+
+    if (Number.isNaN(checkIn.getTime()) || Number.isNaN(checkOut.getTime())) {
+      return null;
+    }
+
+    const diffMs = checkOut.getTime() - checkIn.getTime();
+    if (diffMs <= 0) return 0;
+
+    return Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+  };
   const canReleasePayout = (booking) => {
     const status = booking?.status;
     return (
@@ -626,6 +641,7 @@ const AllBookings = () => {
   const selectedPropertyOption = filteredPropertyOptions.find((option) => option.value === backfillForm.propertyId)
     || propertyOptions.find((option) => option.value === backfillForm.propertyId)
     || null;
+  const calculatedNights = getCalculatedNights(backfillForm.checkInDate, backfillForm.checkOutDate);
 
   useEffect(() => {
     if (!backfillForm.propertyId || !backfillForm.agentId) {
@@ -1189,6 +1205,14 @@ const AllBookings = () => {
                   <FormLabel>Check-out date</FormLabel>
                   <Input type="datetime-local" value={backfillForm.checkOutDate} onChange={(e) => updateBackfillForm('checkOutDate', e.target.value)} />
                 </FormControl>
+                <Box gridColumn={{ base: 'auto', md: '1 / -1' }}>
+                  <Text fontSize="sm" color={calculatedNights === 0 ? 'red.500' : 'gray.600'}>
+                    Calculated nights:{' '}
+                    <Text as="span" fontWeight="semibold" color={calculatedNights === 0 ? 'red.500' : 'gray.800'}>
+                      {calculatedNights ?? 'Enter check-in and check-out dates'}
+                    </Text>
+                  </Text>
+                </Box>
                 <FormControl>
                   <FormLabel>Booking created at</FormLabel>
                   <Input type="datetime-local" value={backfillForm.bookingCreatedAt} onChange={(e) => updateBackfillForm('bookingCreatedAt', e.target.value)} />

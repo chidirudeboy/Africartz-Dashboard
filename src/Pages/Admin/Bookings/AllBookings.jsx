@@ -354,10 +354,11 @@ const AllBookings = () => {
       const nextPropertyOptions = (propertiesResponse.data?.apartments || [])
         .map((property) => ({
           value: property._id,
-          label: `${property.apartmentName} - ${property.city}, ${property.state}`,
+          label: `${property.apartmentName}${property.isImported || property.originalApartment ? ' (Imported)' : ''} - ${property.city}, ${property.state}`,
           apartmentName: property.apartmentName,
           city: property.city,
           state: property.state,
+          isImported: Boolean(property.isImported || property.originalApartment),
           agentId: typeof property.agentId === 'object' ? property.agentId?._id : property.agentId,
           agentName: typeof property.agentId === 'object'
             ? `${property.agentId?.firstName || ''} ${property.agentId?.lastName || ''}`.trim()
@@ -619,7 +620,26 @@ const AllBookings = () => {
 
   const selectedAgentOption = agentOptions.find((option) => option.value === backfillForm.agentId) || null;
   const selectedUserOption = userOptions.find((option) => option.value === backfillForm.userId) || null;
-  const selectedPropertyOption = propertyOptions.find((option) => option.value === backfillForm.propertyId) || null;
+  const filteredPropertyOptions = backfillForm.agentId
+    ? propertyOptions.filter((option) => option.agentId === backfillForm.agentId)
+    : propertyOptions;
+  const selectedPropertyOption = filteredPropertyOptions.find((option) => option.value === backfillForm.propertyId)
+    || propertyOptions.find((option) => option.value === backfillForm.propertyId)
+    || null;
+
+  useEffect(() => {
+    if (!backfillForm.propertyId || !backfillForm.agentId) {
+      return;
+    }
+
+    const selectedProperty = propertyOptions.find((option) => option.value === backfillForm.propertyId);
+    if (selectedProperty && selectedProperty.agentId !== backfillForm.agentId) {
+      setBackfillForm((prev) => ({
+        ...prev,
+        propertyId: ''
+      }));
+    }
+  }, [backfillForm.agentId, backfillForm.propertyId, propertyOptions]);
 
   useEffect(() => {
     if (backfillForm.overrideAutoPricing) {
@@ -1078,7 +1098,13 @@ const AllBookings = () => {
                     isSearchable
                     options={agentOptions}
                     value={selectedAgentOption}
-                    onChange={(option) => updateBackfillForm('agentId', option?.value || '')}
+                    onChange={(option) => {
+                      setBackfillForm((prev) => ({
+                        ...prev,
+                        agentId: option?.value || '',
+                        propertyId: option?.value === prev.agentId ? prev.propertyId : ''
+                      }));
+                    }}
                     placeholder={lookupLoading ? 'Loading agents...' : 'Search and select an agent'}
                     menuPortalTarget={document.body}
                     styles={selectStyles}
@@ -1114,7 +1140,7 @@ const AllBookings = () => {
                   <SelectSearch
                     isClearable
                     isSearchable
-                    options={propertyOptions}
+                    options={filteredPropertyOptions}
                     value={selectedPropertyOption}
                     onChange={(option) => {
                       updateBackfillForm('propertyId', option?.value || '');
@@ -1122,12 +1148,23 @@ const AllBookings = () => {
                         updateBackfillForm('agentId', option.agentId);
                       }
                     }}
-                    placeholder={lookupLoading ? 'Loading properties...' : 'Search and select a property'}
+                    placeholder={
+                      lookupLoading
+                        ? 'Loading properties...'
+                        : backfillForm.agentId
+                          ? 'Search and select this agent’s property'
+                          : 'Select an agent first, or search all properties'
+                    }
                     menuPortalTarget={document.body}
                     styles={selectStyles}
                     formatOptionLabel={(option) => (
                       <Box>
-                        <Text fontWeight="medium">{option.apartmentName || option.label}</Text>
+                        <HStack spacing={2}>
+                          <Text fontWeight="medium">{option.apartmentName || option.label}</Text>
+                          {option.isImported && (
+                            <Badge colorScheme="blue" variant="subtle">Imported</Badge>
+                          )}
+                        </HStack>
                         <Text fontSize="xs" color="gray.500">
                           {option.city}, {option.state}{option.agentName ? ` - ${option.agentName}` : ''}
                         </Text>

@@ -534,8 +534,8 @@ const AllBookings = () => {
   const handleCreateBackfillBooking = async () => {
     if (!backfillForm.agentId || !backfillForm.userId || !backfillForm.propertyId) {
       toast({
-        title: 'Missing IDs',
-        description: 'Agent ID, User ID, and Property ID are required.',
+        title: 'Missing required selections',
+        description: 'Agent, user, and property are required.',
         status: 'warning',
         duration: 4000,
         isClosable: true
@@ -1072,7 +1072,7 @@ const AllBookings = () => {
                   </Select>
                 </FormControl>
                 <FormControl>
-                  <FormLabel>Agent ID</FormLabel>
+                  <FormLabel>Agent</FormLabel>
                   <SelectSearch
                     isClearable
                     isSearchable
@@ -1091,7 +1091,7 @@ const AllBookings = () => {
                   />
                 </FormControl>
                 <FormControl>
-                  <FormLabel>User ID</FormLabel>
+                  <FormLabel>User</FormLabel>
                   <SelectSearch
                     isClearable
                     isSearchable
@@ -1110,7 +1110,7 @@ const AllBookings = () => {
                   />
                 </FormControl>
                 <FormControl>
-                  <FormLabel>Property ID</FormLabel>
+                  <FormLabel>Property</FormLabel>
                   <SelectSearch
                     isClearable
                     isSearchable

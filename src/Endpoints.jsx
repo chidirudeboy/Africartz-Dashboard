@@ -43,6 +43,7 @@ export const AdminGetAllBookingsAPI = endpoint("/admin/bookings/all");
 export const AdminCreateBackfillBookingAPI = endpoint("/admin/bookings/backfill");
 export const AdminPreviewBackfillBookingPricingAPI = endpoint("/admin/bookings/backfill/price-preview");
 export const AdminReleaseBookingPayoutAPI = (bookingId) => endpoint(`/admin/bookings/${bookingId}/release-payout`);
+export const AdminManualSettleBookingAPI = (bookingId) => endpoint(`/admin/bookings/${bookingId}/manual-settlement`);
 
 // Reservations Endpoints
 export const AdminGetAllReservationsAPI = endpoint("/admin/reservations/all-agents");

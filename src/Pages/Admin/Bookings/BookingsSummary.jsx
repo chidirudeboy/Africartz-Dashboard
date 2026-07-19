@@ -48,7 +48,7 @@ const BookingsSummary = () => {
       const processedData = {
         ...data.data,
         totalActiveAgents: data.data.totalAgents,
-        totalRevenue: data.data.totalOnlineSales, // Only online payments for platform revenue
+        totalRevenue: data.data.combinedTotalSales, // Online + manual bookings
         totalBookings: data.data.totalBookings,
         totalOnlineBookings: data.data.totalOnlineBookings,
         totalManualBookings: data.data.totalManualBookings,
@@ -126,13 +126,13 @@ const BookingsSummary = () => {
             <Card>
               <CardBody>
                 <Stat>
-                  <StatLabel>Total Platform Revenue</StatLabel>
+                  <StatLabel>Total Booking Sales</StatLabel>
                   <StatNumber color="green.500">
                     {formatCurrency(summaryData?.totalRevenue || 0)}
                   </StatNumber>
                   <StatHelpText>
                     <StatArrow type="increase" />
-                    Online earnings only
+                    Online + manual bookings
                   </StatHelpText>
                 </Stat>
               </CardBody>

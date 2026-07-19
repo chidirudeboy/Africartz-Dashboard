@@ -13,6 +13,7 @@ export const AdminChangeAgentStatusAPI = (AGENT_ID) => endpoint(`/admin/agents/$
 export const AdminGetUsersAPI = endpoint("/admin/users");
 export const AdminChangeUserStatusAPI = (USER_ID) => endpoint(`/admin/users/${USER_ID}/status`);
 export const AdminGetAgentWalletsAPI = endpoint("/admin/agent-wallets");
+export const AdminGetAgentWalletHistoryAPI = (agentId) => endpoint(`/admin/agent-wallets/${agentId}/history`);
 export const AdminGetBlogsAPI = endpoint("/admin/blogs");
 export const AdminCreateBlogAPI = endpoint("/admin/blogs");
 export const AdminUpdateBlogAPI = (POST_ID) => endpoint(`/admin/blogs/${POST_ID}`);

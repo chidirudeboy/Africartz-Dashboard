@@ -1,5 +1,5 @@
 import { Fragment, useState, useEffect, useContext, useCallback, useMemo } from "react";
-import { Flex, SimpleGrid, Spinner, Text, useToast, Box, Stat, StatLabel, StatNumber, StatHelpText, Badge, Avatar, HStack, VStack, Input, InputGroup, InputLeftElement } from "@chakra-ui/react";
+import { Flex, SimpleGrid, Spinner, Text, useToast, Box, Stat, StatLabel, StatNumber, StatHelpText, Badge, Avatar, HStack, VStack, Input, InputGroup, InputLeftElement, Button, Modal, ModalOverlay, ModalContent, ModalHeader, ModalBody, ModalFooter, ModalCloseButton } from "@chakra-ui/react";
 import { SearchIcon } from "@chakra-ui/icons";
 import { Column } from "primereact/column";
 import { DataTable } from "primereact/datatable";
@@ -7,7 +7,7 @@ import axios from "axios";
 import Card from "../../../components/Card/Card.js";
 import CardBody from "../../../components/Card/CardBody.js";
 import CardHeader from "../../../components/Card/CardHeader.js";
-import { AdminGetAgentWalletsAPI } from "../../../Endpoints";
+import { AdminGetAgentWalletHistoryAPI, AdminGetAgentWalletsAPI } from "../../../Endpoints";
 import GlobalContext from "../../../Context";
 import { formatPhoneNumber } from "../../../utils/phone";
 
@@ -15,6 +15,11 @@ const AgentWallets = () => {
 	const [loading, setLoading] = useState(false);
 	const [wallets, setWallets] = useState([]);
 	const [globalFilter, setGlobalFilter] = useState("");
+	const [historyModalOpen, setHistoryModalOpen] = useState(false);
+	const [selectedWallet, setSelectedWallet] = useState(null);
+	const [historyLoading, setHistoryLoading] = useState(false);
+	const [walletHistory, setWalletHistory] = useState([]);
+	const [walletHistoryMeta, setWalletHistoryMeta] = useState(null);
 	const toast = useToast();
 	const { handleTokenExpired } = useContext(GlobalContext);
 
@@ -76,13 +81,74 @@ const AgentWallets = () => {
 
 	const formatCurrency = (value) => `₦${Number(value || 0).toLocaleString()}`;
 
-	const formatDate = (dateString) => {
+	const formatDate = (dateString, withTime = false) => {
 		if (!dateString) return "N/A";
-		return new Date(dateString).toLocaleDateString(undefined, {
+		return new Date(dateString).toLocaleString(undefined, withTime ? {
+			year: "numeric",
+			month: "short",
+			day: "numeric",
+			hour: "2-digit",
+			minute: "2-digit",
+		} : {
 			year: "numeric",
 			month: "short",
 			day: "numeric",
 		});
+	};
+
+	const fetchWalletHistory = useCallback(async (agentId) => {
+		setHistoryLoading(true);
+		try {
+			const authToken = localStorage.getItem("authToken");
+			if (!authToken) {
+				throw new Error("No authentication token found");
+			}
+
+			const response = await axios.get(AdminGetAgentWalletHistoryAPI(agentId), {
+				headers: {
+					"Content-Type": "application/json",
+					Authorization: `Bearer ${authToken}`,
+				},
+			});
+
+			if (response.data.status === "success") {
+				setWalletHistory(response.data.data?.transactions || []);
+				setWalletHistoryMeta(response.data.data || null);
+			} else {
+				throw new Error(response.data.message || "Failed to fetch wallet history");
+			}
+		} catch (error) {
+			console.error("Error fetching wallet history:", error);
+			toast({
+				title: "Error",
+				description: error.response?.data?.message || error.message,
+				status: "error",
+				duration: 5000,
+				isClosable: true,
+			});
+
+			if (error.response?.status === 401) {
+				handleTokenExpired();
+			}
+		} finally {
+			setHistoryLoading(false);
+		}
+	}, [handleTokenExpired, toast]);
+
+	const openHistoryModal = async (wallet) => {
+		setSelectedWallet(wallet);
+		setWalletHistory([]);
+		setWalletHistoryMeta(null);
+		setHistoryModalOpen(true);
+		await fetchWalletHistory(wallet.agentId);
+	};
+
+	const closeHistoryModal = () => {
+		if (historyLoading) return;
+		setHistoryModalOpen(false);
+		setSelectedWallet(null);
+		setWalletHistory([]);
+		setWalletHistoryMeta(null);
 	};
 
 	const agentTemplate = (rowData) => (
@@ -122,6 +188,18 @@ const AgentWallets = () => {
 		<Text fontSize="sm" color="gray.700" whiteSpace="nowrap">
 			{formatPhoneNumber(rowData.phone)}
 		</Text>
+	);
+
+	const transactionTypeTemplate = (rowData) => (
+		<Badge colorScheme={rowData.type === "credit" ? "green" : "red"} variant="subtle" borderRadius="full" px={3} py={1} textTransform="capitalize">
+			{rowData.type}
+		</Badge>
+	);
+
+	const historyActionTemplate = (rowData) => (
+		<Button size="sm" colorScheme="blue" variant="outline" onClick={() => openHistoryModal(rowData)}>
+			View History
+		</Button>
 	);
 
 	return (
@@ -218,10 +296,63 @@ const AgentWallets = () => {
 									<Column field="status" header="Status" body={statusTemplate} sortable filter filterPlaceholder="Search by status" style={{ width: "14%", padding: "16px" }} headerStyle={{ backgroundColor: "#f8f9fa", fontWeight: "600", padding: "16px" }} />
 									<Column field="balance" header="Wallet Balance" body={balanceTemplate} sortable style={{ width: "18%", padding: "16px" }} headerStyle={{ backgroundColor: "#f8f9fa", fontWeight: "600", padding: "16px" }} />
 									<Column field="updatedAt" header="Last Updated" body={(row) => <Text fontSize="sm" color="gray.600">{formatDate(row.updatedAt)}</Text>} sortable style={{ width: "16%", padding: "16px" }} headerStyle={{ backgroundColor: "#f8f9fa", fontWeight: "600", padding: "16px" }} />
+									<Column header="History" body={historyActionTemplate} style={{ width: "12%", padding: "16px" }} headerStyle={{ backgroundColor: "#f8f9fa", fontWeight: "600", padding: "16px" }} />
 								</DataTable>
 							</Box>
 						</CardBody>
 					</Card>
+
+					<Modal isOpen={historyModalOpen} onClose={closeHistoryModal} size="6xl" scrollBehavior="inside">
+						<ModalOverlay />
+						<ModalContent>
+							<ModalHeader>
+								Wallet History {selectedWallet?.fullName ? `- ${selectedWallet.fullName}` : ""}
+							</ModalHeader>
+							<ModalCloseButton />
+							<ModalBody>
+								<VStack align="stretch" spacing={4}>
+									<Box>
+										<Text fontSize="sm" color="gray.500">
+											Current balance
+										</Text>
+										<Text fontSize="2xl" fontWeight="bold" color="green.600">
+											{formatCurrency(walletHistoryMeta?.wallet?.balance || selectedWallet?.balance || 0)}
+										</Text>
+									</Box>
+
+									{historyLoading ? (
+										<Flex justify="center" align="center" py={10}>
+											<Spinner size="lg" />
+										</Flex>
+									) : (
+										<DataTable
+											value={walletHistory}
+											paginator
+											rows={10}
+											rowsPerPageOptions={[5, 10, 25, 50]}
+											emptyMessage="No wallet transactions found."
+											stripedRows
+											rowHover
+											scrollable
+											scrollHeight="420px"
+										>
+											<Column field="type" header="Type" body={transactionTypeTemplate} style={{ minWidth: "120px" }} />
+											<Column field="amount" header="Amount" body={(row) => <Text fontWeight="semibold">{formatCurrency(row.amount)}</Text>} style={{ minWidth: "140px" }} />
+											<Column field="balanceBefore" header="Before" body={(row) => <Text>{formatCurrency(row.balanceBefore)}</Text>} style={{ minWidth: "140px" }} />
+											<Column field="balanceAfter" header="After" body={(row) => <Text>{formatCurrency(row.balanceAfter)}</Text>} style={{ minWidth: "140px" }} />
+											<Column field="reason" header="Reason" body={(row) => <Text fontSize="sm">{row.reason || "N/A"}</Text>} style={{ minWidth: "220px" }} />
+											<Column field="reference" header="Reference" body={(row) => <Text fontSize="xs" fontFamily="mono">{row.reference}</Text>} style={{ minWidth: "200px" }} />
+											<Column field="adminId" header="Admin" body={(row) => <Text fontSize="sm">{row.adminId?.email || `${row.adminId?.firstName || ""} ${row.adminId?.lastName || ""}`.trim() || "N/A"}</Text>} style={{ minWidth: "180px" }} />
+											<Column field="createdAt" header="Date" body={(row) => <Text fontSize="sm">{formatDate(row.createdAt, true)}</Text>} sortable style={{ minWidth: "180px" }} />
+										</DataTable>
+									)}
+								</VStack>
+							</ModalBody>
+							<ModalFooter>
+								<Button onClick={closeHistoryModal}>Close</Button>
+							</ModalFooter>
+						</ModalContent>
+					</Modal>
 				</Fragment>
 			)}
 		</Flex>

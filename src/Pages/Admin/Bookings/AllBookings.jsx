@@ -214,8 +214,7 @@ const AllBookings = () => {
       booking?.payoutStatus === 'held' &&
       status !== 'payment_failed' &&
       status !== 'cancelled' &&
-      status !== 'pending_payment' &&
-      Boolean(booking?.payoutReleaseCodeHash)
+      status !== 'pending_payment'
     );
   };
   const canManuallySettle = (booking) => ['payment_failed', 'pending_payment'].includes(booking?.status);

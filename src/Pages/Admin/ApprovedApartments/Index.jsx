@@ -68,6 +68,7 @@ import axios from "axios";
 import {
 	AdminGetApprovedApartmentsAPI,
 	AdminGetApprovedApartmentByIdAPI,
+	AdminToggleApartmentFeaturedAPI,
 	AdminToggleApartmentVerificationAPI,
 	AdminUpdateApartmentAPI,
 	AdminRemoveApartmentAPI,
@@ -103,6 +104,7 @@ const ApprovedApartments = () => {
 	const deleteSeasonalCancelRef = useRef();
 	const [removingApartmentId, setRemovingApartmentId] = useState(null);
 	const [verifyingApartmentId, setVerifyingApartmentId] = useState(null);
+	const [featuringApartmentId, setFeaturingApartmentId] = useState(null);
 	const [apartmentToRemove, setApartmentToRemove] = useState(null);
 	const [removeReason, setRemoveReason] = useState("");
 	const [verificationNote, setVerificationNote] = useState("");
@@ -149,7 +151,8 @@ const ApprovedApartments = () => {
 					defaultStayFee: apt.defaultStayFee,
 					city: apt.city,
 					state: apt.state,
-					isVerified: Boolean(apt.isVerified)
+					isVerified: Boolean(apt.isVerified),
+					isFeatured: Boolean(apt.isFeatured),
 				}));
 				setApprovedApartments(mapped);
 			} else {
@@ -1234,9 +1237,16 @@ const ApprovedApartments = () => {
 			<HStack spacing={3}>
 				<Avatar size="sm" name={rowData.apartmentName} bg="blue.500" />
 				<VStack align="start" spacing={0}>
-					<Text fontWeight="medium" fontSize="sm">
-						{rowData.apartmentName}
-					</Text>
+					<HStack spacing={2}>
+						<Text fontWeight="medium" fontSize="sm">
+							{rowData.apartmentName}
+						</Text>
+						{rowData.isFeatured && (
+							<Badge colorScheme="purple" variant="solid" borderRadius="full" px={2}>
+								Featured
+							</Badge>
+						)}
+					</HStack>
 					<Text fontSize="xs" color="gray.500">
 						{rowData.apartmentAddress}
 					</Text>
@@ -1373,6 +1383,52 @@ const ApprovedApartments = () => {
 		}
 	};
 
+	const toggleFeaturedApartment = async (rowData) => {
+		setFeaturingApartmentId(rowData.id);
+		try {
+			const authToken = localStorage.getItem("authToken");
+			if (!authToken) throw new Error("No authentication token found");
+
+			const nextFeaturedState = !rowData.isFeatured;
+
+			await axios.patch(
+				AdminToggleApartmentFeaturedAPI(rowData.id),
+				{ isFeatured: nextFeaturedState },
+				{
+					headers: {
+						"Content-Type": "application/json",
+						Authorization: `Bearer ${authToken}`,
+					},
+				}
+			);
+
+			toast({
+				title: nextFeaturedState ? "Apartment featured" : "Apartment unfeatured",
+				description: `${rowData.apartmentName} has been ${nextFeaturedState ? "added to" : "removed from"} featured apartments.`,
+				status: "success",
+				duration: 4000,
+				isClosable: true,
+			});
+
+			if (selectedApartment?._id === rowData.id) {
+				setSelectedApartment((prev) => (prev ? { ...prev, isFeatured: nextFeaturedState } : prev));
+			}
+
+			fetchApprovedApartments();
+		} catch (error) {
+			console.error("Error updating apartment featured state:", error);
+			toast({
+				title: "Error",
+				description: error.response?.data?.error || error.response?.data?.message || error.message || "Failed to update apartment featured state",
+				status: "error",
+				duration: 5000,
+				isClosable: true,
+			});
+		} finally {
+			setFeaturingApartmentId(null);
+		}
+	};
+
 	const confirmRemoveApartment = async () => {
 		if (!apartmentToRemove) return;
 
@@ -1457,6 +1513,17 @@ const ApprovedApartments = () => {
 					{rowData.isVerified ? "Unverify" : "Verify"}
 				</Button>
 				<Button
+					colorScheme={rowData.isFeatured ? "purple" : "gray"}
+					size="sm"
+					variant="outline"
+					leftIcon={<Icon as={rowData.isFeatured ? FaStar : FaRegStar} />}
+					isLoading={featuringApartmentId === rowData.id}
+					onClick={() => toggleFeaturedApartment(rowData)}
+					borderRadius="full"
+				>
+					{rowData.isFeatured ? "Unfeature" : "Feature"}
+				</Button>
+				<Button
 					colorScheme="red"
 					size="sm"
 					variant="outline"
@@ -1477,6 +1544,7 @@ const ApprovedApartments = () => {
 	const averagePrice = totalApartments > 0 ? totalRevenue / totalApartments : 0;
 	const uniqueAgents = new Set(approvedApartments.map(apt => apt.agentEmail)).size;
 	const verifiedApartments = approvedApartments.filter((apt) => apt.isVerified).length;
+	const featuredApartments = approvedApartments.filter((apt) => apt.isFeatured).length;
 	const displayedApartments = approvedApartments.filter((apt) => {
 		if (verificationFilter === "verified") return apt.isVerified;
 		if (verificationFilter === "unverified") return !apt.isVerified;
@@ -1534,7 +1602,7 @@ const ApprovedApartments = () => {
 			) : (
 				<Fragment>
 					{/* Statistics Cards */}
-					<SimpleGrid columns={{ sm: 1, md: 2, xl: 5 }} spacing="24px" mb="30px">
+					<SimpleGrid columns={{ sm: 1, md: 2, xl: 6 }} spacing="24px" mb="30px">
 						<Card p="20px" bg="linear-gradient(135deg, #667eea 0%, #764ba2 100%)" color="white">
 							<Stat>
 								<StatLabel fontSize="md" opacity={0.8}>Total Approved</StatLabel>
@@ -1572,6 +1640,14 @@ const ApprovedApartments = () => {
 								<StatLabel fontSize="md" opacity={0.8}>Verified</StatLabel>
 								<StatNumber fontSize="2xl" fontWeight="bold">{verifiedApartments}</StatNumber>
 								<StatHelpText fontSize="sm" opacity={0.7}>Field-inspected apartments</StatHelpText>
+							</Stat>
+						</Card>
+
+						<Card p="20px" bg="linear-gradient(135deg, #805ad5 0%, #6b46c1 100%)" color="white">
+							<Stat>
+								<StatLabel fontSize="md" opacity={0.8}>Featured</StatLabel>
+								<StatNumber fontSize="2xl" fontWeight="bold">{featuredApartments}</StatNumber>
+								<StatHelpText fontSize="sm" opacity={0.7}>Homepage-priority apartments</StatHelpText>
 							</Stat>
 						</Card>
 					</SimpleGrid>

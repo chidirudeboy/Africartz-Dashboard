@@ -37,6 +37,13 @@ export const ADMIN_ENDPOINTS = {
     update: withId("/admin/users"),
     delete: withId("/admin/users")
   },
+  announcements: {
+    list: endpoint("/admin/announcements"),
+    create: endpoint("/admin/announcements"),
+    update: withId("/admin/announcements"),
+    delete: withId("/admin/announcements"),
+    toggleStatus: (announcementId) => endpoint(`/admin/announcements/${announcementId}/status`)
+  },
   staff: {
     list: endpoint("/admin/staff"),
     create: endpoint("/admin/staff/add"),

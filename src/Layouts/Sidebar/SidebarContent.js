@@ -2,6 +2,7 @@ import { Box, Icon, Stack, Text, Divider, VStack } from "@chakra-ui/react";
 import React, { Fragment } from "react";
 import {
   FaBookOpen,
+  FaBullhorn,
   FaHandshake,
   FaComments,
   FaNewspaper,
@@ -161,6 +162,12 @@ const SidebarContent = ({ logoText, isCollapsed }) => {
               text="Blog"
               icon={<Icon as={FaNewspaper} w={5} h={5} />}
               route="/admin/blogs"
+              isCollapsed={isCollapsed}
+            />
+            <SideBarLink
+              text="Announcements"
+              icon={<Icon as={FaBullhorn} w={5} h={5} />}
+              route="/admin/announcements"
               isCollapsed={isCollapsed}
             />
             <SideBarLink

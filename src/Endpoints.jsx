@@ -59,6 +59,8 @@ export const AdminGetAllChatsAPI = endpoint("/chat/admin/chats");
 export const AdminGetChatMessagesAPI = (chatId) => endpoint(`/chat/admin/chats/${chatId}/messages`);
 export const AdminGetAllBargainsAPI = endpoint("/admin/bargains");
 export const AdminGetBargainByIdAPI = (bargainId) => endpoint(`/admin/bargains/${bargainId}`);
+export const AdminGetBargainMinimumNightsAPI = endpoint("/admin/settings/bargain-minimum-nights");
+export const AdminUpdateBargainMinimumNightsAPI = endpoint("/admin/settings/bargain-minimum-nights");
 
 
 // ≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠OLD≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠

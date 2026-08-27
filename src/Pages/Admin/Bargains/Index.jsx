@@ -28,7 +28,12 @@ import {
   useColorModeValue,
   useToast
 } from '@chakra-ui/react';
-import { AdminGetAllBargainsAPI, AdminGetBargainByIdAPI } from '../../../Endpoints';
+import {
+  AdminGetAllBargainsAPI,
+  AdminGetBargainByIdAPI,
+  AdminGetBargainMinimumNightsAPI,
+  AdminUpdateBargainMinimumNightsAPI
+} from '../../../Endpoints';
 
 const currency = (amount) => new Intl.NumberFormat('en-NG', {
   style: 'currency',
@@ -100,6 +105,10 @@ const BargainsIndex = () => {
   const [selectedBargain, setSelectedBargain] = useState(null);
   const [loadingDetails, setLoadingDetails] = useState(false);
   const [detailsOpen, setDetailsOpen] = useState(false);
+  const [minimumNights, setMinimumNights] = useState(2);
+  const [minimumNightsDraft, setMinimumNightsDraft] = useState('2');
+  const [loadingSetting, setLoadingSetting] = useState(true);
+  const [savingSetting, setSavingSetting] = useState(false);
 
   const cardBg = useColorModeValue('white', 'gray.800');
   const borderColor = useColorModeValue('gray.200', 'gray.600');
@@ -141,6 +150,77 @@ const BargainsIndex = () => {
     fetchBargains();
   }, [fetchBargains]);
 
+  const fetchMinimumNights = useCallback(async () => {
+    try {
+      setLoadingSetting(true);
+      const response = await axios.get(AdminGetBargainMinimumNightsAPI, {
+        headers: authHeaders
+      });
+      const value = Number(response?.data?.data?.value ?? 2);
+      setMinimumNights(value);
+      setMinimumNightsDraft(String(value));
+    } catch (error) {
+      toast({
+        title: 'Failed to load bargain setting',
+        description: error?.response?.data?.error || error?.response?.data?.message || error.message,
+        status: 'error',
+        duration: 5000,
+        isClosable: true
+      });
+    } finally {
+      setLoadingSetting(false);
+    }
+  }, [authHeaders, toast]);
+
+  useEffect(() => {
+    fetchMinimumNights();
+  }, [fetchMinimumNights]);
+
+  const saveMinimumNights = async () => {
+    const value = Number(minimumNightsDraft);
+
+    if (!Number.isFinite(value) || value < 1) {
+      toast({
+        title: 'Invalid minimum nights',
+        description: 'Enter a number greater than or equal to 1.',
+        status: 'warning',
+        duration: 4000,
+        isClosable: true
+      });
+      return;
+    }
+
+    try {
+      setSavingSetting(true);
+      const response = await axios.put(
+        AdminUpdateBargainMinimumNightsAPI,
+        { value },
+        { headers: authHeaders }
+      );
+
+      const updatedValue = Number(response?.data?.data?.value ?? value);
+      setMinimumNights(updatedValue);
+      setMinimumNightsDraft(String(updatedValue));
+      toast({
+        title: 'Bargain minimum nights updated',
+        description: `Users can now make offers from ${updatedValue} night${updatedValue > 1 ? 's' : ''} upward.`,
+        status: 'success',
+        duration: 4000,
+        isClosable: true
+      });
+    } catch (error) {
+      toast({
+        title: 'Failed to update bargain setting',
+        description: error?.response?.data?.error || error?.response?.data?.message || error.message,
+        status: 'error',
+        duration: 5000,
+        isClosable: true
+      });
+    } finally {
+      setSavingSetting(false);
+    }
+  };
+
   const handleFilterChange = (key, value) => {
     setFilters((prev) => ({ ...prev, [key]: value, page: key === 'page' ? value : 1 }));
   };
@@ -174,6 +254,42 @@ const BargainsIndex = () => {
           <Text fontSize="2xl" fontWeight="bold" mb={2}>Bargains</Text>
           <Text color={mutedColor}>
             Monitor negotiation activity, agreed pricing, and payment state for user-initiated bargain requests.
+          </Text>
+        </Box>
+
+        <Box bg={cardBg} borderRadius="lg" border={`1px solid ${borderColor}`} p={5}>
+          <Flex justify="space-between" align={{ base: 'stretch', md: 'center' }} direction={{ base: 'column', md: 'row' }} gap={4}>
+            <Box maxW="2xl">
+              <Text fontSize="lg" fontWeight="bold" mb={1}>Bargain eligibility</Text>
+              <Text color={mutedColor} fontSize="sm">
+                Control how many nights a user must select before the make-offer flow is available.
+              </Text>
+            </Box>
+
+            <HStack align="end" spacing={3}>
+              <Box minW="180px">
+                <Text fontSize="sm" mb={2}>Minimum nights</Text>
+                <Input
+                  type="number"
+                  min={1}
+                  value={minimumNightsDraft}
+                  onChange={(e) => setMinimumNightsDraft(e.target.value)}
+                  isDisabled={loadingSetting || savingSetting}
+                />
+              </Box>
+              <Button
+                colorScheme="blue"
+                onClick={saveMinimumNights}
+                isLoading={savingSetting}
+                isDisabled={loadingSetting}
+              >
+                Save
+              </Button>
+            </HStack>
+          </Flex>
+
+          <Text mt={3} fontSize="sm" color={mutedColor}>
+            Current live rule: users need at least <strong>{minimumNights}</strong> night{minimumNights > 1 ? 's' : ''} selected before they can send an offer.
           </Text>
         </Box>
 

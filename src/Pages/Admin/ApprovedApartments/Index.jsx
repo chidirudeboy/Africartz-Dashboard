@@ -76,8 +76,12 @@ import {
 import { APARTMENT_ENDPOINTS } from "../../../api/endpoints";
 import { formatPhoneNumber } from "../../../utils/phone";
 import { createUploadService } from "../../../utils/uploadService";
+import { useSearchParams } from "react-router-dom";
 
 const ApprovedApartments = () => {
+	const [searchParams, setSearchParams] = useSearchParams();
+	const deepLinkedApartmentId = searchParams.get("apartmentId");
+	const openedApartmentIdRef = useRef(null);
 	const [loading, setLoading] = useState(false);
 	const [approvedApartments, setApprovedApartments] = useState([]);
 	const [verificationFilter, setVerificationFilter] = useState("all");
@@ -337,6 +341,17 @@ const ApprovedApartments = () => {
 			}, 100);
 		}
 	};
+
+	useEffect(() => {
+		if (!deepLinkedApartmentId || openedApartmentIdRef.current === deepLinkedApartmentId) {
+			return;
+		}
+
+		openedApartmentIdRef.current = deepLinkedApartmentId;
+		fetchApartmentDetails(deepLinkedApartmentId);
+		// fetchApartmentDetails intentionally runs once for each apartment ID in the URL.
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [deepLinkedApartmentId]);
 
 	const handleEditApartment = () => {
 		setIsEditMode(true);
@@ -861,6 +876,13 @@ const ApprovedApartments = () => {
 		closeSeasonalModal();
 		closeBedroomModal();
 		onClose();
+
+		if (deepLinkedApartmentId) {
+			const nextParams = new URLSearchParams(searchParams);
+			nextParams.delete("apartmentId");
+			setSearchParams(nextParams, { replace: true });
+			openedApartmentIdRef.current = null;
+		}
 	};
 
 	const openMediaViewer = (mediaUrl, mediaType, index) => {

@@ -10,6 +10,7 @@ import { AdminChangeAgentStatusAPI, AdminGetAgentAPI, AdminGetAgentApartmentsAPI
 import GlobalContext from "../../../Context";
 import { SearchIcon } from "@chakra-ui/icons";
 import { formatPhoneNumber } from "../../../utils/phone";
+import { useNavigate } from "react-router-dom";
 
 const AgentsTable = () => {
 	const [loading, setLoading] = useState(false);
@@ -26,6 +27,7 @@ const AgentsTable = () => {
 	const [apartmentsLoading, setApartmentsLoading] = useState(false);
 	const [apartmentsError, setApartmentsError] = useState("");
 	const toast = useToast();
+	const navigate = useNavigate();
 	const { handleTokenExpired } = useContext(GlobalContext);
 	const { isOpen, onOpen, onClose } = useDisclosure();
 	const {
@@ -281,6 +283,11 @@ const AgentsTable = () => {
 		removed: "gray",
 	}[status] || "gray");
 
+	const viewApartment = (apartmentId) => {
+		closeApartmentsModal();
+		navigate(`/admin/approved-apartments?apartmentId=${encodeURIComponent(apartmentId)}`);
+	};
+
 	const ApartmentCards = ({ apartments }) => {
 		if (!apartments.length) {
 			return (
@@ -319,6 +326,15 @@ const AgentsTable = () => {
 										<Text fontSize="sm" fontWeight="bold">{formatCurrency(apartment.defaultStayFee)} <Text as="span" fontWeight="normal" color="gray.500">/ night</Text></Text>
 										<Badge colorScheme={apartment.ownershipType === "imported" ? "blue" : "purple"} variant="subtle" textTransform="capitalize">{apartment.ownershipType || "owned"}</Badge>
 									</HStack>
+									<Button
+										size="sm"
+										variant="outline"
+										colorScheme="yellow"
+										alignSelf="flex-start"
+										onClick={() => viewApartment(apartment._id)}
+									>
+										View &amp; manage
+									</Button>
 								</VStack>
 							</Flex>
 						</Box>

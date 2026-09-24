@@ -9,6 +9,7 @@ const endpoint = (path) => `${baseUrl}${path}`;
 
 export const AdminLoginAPI = endpoint("/auth/admin/login");
 export const AdminGetAgentAPI = endpoint("/admin/agents");
+export const AdminGetAgentApartmentsAPI = (AGENT_ID) => endpoint(`/admin/agents/${AGENT_ID}/apartments`);
 export const AdminChangeAgentStatusAPI = (AGENT_ID) => endpoint(`/admin/agents/${AGENT_ID}/status`);
 export const AdminGetUsersAPI = endpoint("/admin/users");
 export const AdminChangeUserStatusAPI = (USER_ID) => endpoint(`/admin/users/${USER_ID}/status`);

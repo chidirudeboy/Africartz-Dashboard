@@ -1,12 +1,12 @@
 import { Fragment, useState, useEffect, useContext, useCallback, useMemo } from "react";
-import { Flex, SimpleGrid, Spinner, Text, useToast, Box, Stat, StatLabel, StatNumber, StatHelpText, Badge, Avatar, HStack, VStack, Input, InputGroup, InputLeftElement, Button, Modal, ModalOverlay, ModalContent, ModalHeader, ModalBody, ModalFooter, ModalCloseButton, Textarea, FormControl, FormLabel, useDisclosure } from "@chakra-ui/react";
+import { Flex, SimpleGrid, Spinner, Text, useToast, Box, Stat, StatLabel, StatNumber, StatHelpText, Badge, Avatar, HStack, VStack, Input, InputGroup, InputLeftElement, Button, Modal, ModalOverlay, ModalContent, ModalHeader, ModalBody, ModalFooter, ModalCloseButton, Textarea, FormControl, FormLabel, useDisclosure, Tooltip, Image, Tabs, TabList, Tab, TabPanels, TabPanel, Divider } from "@chakra-ui/react";
 import { Column } from "primereact/column";
 import { DataTable } from "primereact/datatable";
 import axios from "axios";
 import Card from "../../../components/Card/Card.js";
 import CardBody from "../../../components/Card/CardBody.js";
 import CardHeader from "../../../components/Card/CardHeader.js";
-import { AdminChangeAgentStatusAPI, AdminGetAgentAPI } from "../../../Endpoints";
+import { AdminChangeAgentStatusAPI, AdminGetAgentAPI, AdminGetAgentApartmentsAPI } from "../../../Endpoints";
 import GlobalContext from "../../../Context";
 import { SearchIcon } from "@chakra-ui/icons";
 import { formatPhoneNumber } from "../../../utils/phone";
@@ -20,9 +20,19 @@ const AgentsTable = () => {
 	const [selectedAgent, setSelectedAgent] = useState(null);
 	const [statusReason, setStatusReason] = useState("");
 	const [statusActionLoading, setStatusActionLoading] = useState(false);
+	const [apartmentAgent, setApartmentAgent] = useState(null);
+	const [agentApartments, setAgentApartments] = useState([]);
+	const [apartmentCounts, setApartmentCounts] = useState({ all: 0, owned: 0, imported: 0 });
+	const [apartmentsLoading, setApartmentsLoading] = useState(false);
+	const [apartmentsError, setApartmentsError] = useState("");
 	const toast = useToast();
 	const { handleTokenExpired } = useContext(GlobalContext);
 	const { isOpen, onOpen, onClose } = useDisclosure();
+	const {
+		isOpen: isApartmentsOpen,
+		onOpen: onApartmentsOpen,
+		onClose: onApartmentsClose,
+	} = useDisclosure();
 
 	const fetchAgents = useCallback(async () => {
 		setLoading(true);
@@ -171,16 +181,150 @@ const AgentsTable = () => {
 
 	// Format apartment count with badge
 	const apartmentCountTemplate = (rowData) => {
+		const hasApartments = rowData.apartmentCount > 0;
+
 		return (
-			<Badge
-				colorScheme={rowData.apartmentCount > 0 ? "green" : "gray"}
-				variant="subtle"
-				borderRadius="full"
-				px={3}
-				py={1}
-			>
-				{rowData.apartmentCount}
-			</Badge>
+			<Tooltip label={hasApartments ? "View this agent's apartments" : "No apartments"} hasArrow>
+				<Button
+					variant="ghost"
+					size="sm"
+					minW="auto"
+					p={0}
+					borderRadius="full"
+					isDisabled={!hasApartments}
+					onClick={() => openApartmentsModal(rowData)}
+					aria-label={`View ${rowData.apartmentCount} apartments owned or imported by ${rowData.firstName} ${rowData.lastName}`}
+				>
+					<Badge
+						colorScheme={hasApartments ? "green" : "gray"}
+						variant={hasApartments ? "solid" : "subtle"}
+						borderRadius="full"
+						px={3}
+						py={1}
+						textDecoration={hasApartments ? "underline" : "none"}
+						textUnderlineOffset="2px"
+					>
+						{rowData.apartmentCount}
+					</Badge>
+				</Button>
+			</Tooltip>
+		);
+	};
+
+	const fetchAgentApartments = useCallback(async (agent) => {
+		if (!agent?._id) return;
+
+		setApartmentsLoading(true);
+		setApartmentsError("");
+
+		try {
+			const authToken = localStorage.getItem("authToken");
+
+			if (!authToken) {
+				throw new Error("No authentication token found");
+			}
+
+			const response = await axios.get(AdminGetAgentApartmentsAPI(agent._id), {
+				headers: {
+					"Content-Type": "application/json",
+					Authorization: `Bearer ${authToken}`,
+				},
+			});
+
+			const data = response?.data?.data || {};
+			setAgentApartments(data.apartments || []);
+			setApartmentCounts(data.counts || { all: 0, owned: 0, imported: 0 });
+		} catch (error) {
+			console.error("Error fetching agent apartments:", error);
+			const message = error.response?.data?.message || error.response?.data?.error || error.message;
+			setApartmentsError(message || "Unable to load apartments.");
+
+			if (error.response?.status === 401) {
+				handleTokenExpired();
+			}
+		} finally {
+			setApartmentsLoading(false);
+		}
+	}, [handleTokenExpired]);
+
+	const openApartmentsModal = (agent) => {
+		setApartmentAgent(agent);
+		setAgentApartments([]);
+		setApartmentCounts({
+			all: agent.apartmentCount || 0,
+			owned: agent.ownedApartments || 0,
+			imported: agent.importedApartments || 0,
+		});
+		onApartmentsOpen();
+		fetchAgentApartments(agent);
+	};
+
+	const closeApartmentsModal = () => {
+		onApartmentsClose();
+		setApartmentAgent(null);
+		setAgentApartments([]);
+		setApartmentsError("");
+	};
+
+	const formatCurrency = (amount) => new Intl.NumberFormat("en-NG", {
+		style: "currency",
+		currency: "NGN",
+		maximumFractionDigits: 0,
+	}).format(Number(amount) || 0);
+
+	const apartmentStatusColor = (status) => ({
+		approved: "green",
+		pending: "yellow",
+		under_review: "purple",
+		rejected: "red",
+		suspended: "orange",
+		removed: "gray",
+	}[status] || "gray");
+
+	const ApartmentCards = ({ apartments }) => {
+		if (!apartments.length) {
+			return (
+				<Flex minH="220px" align="center" justify="center" direction="column" textAlign="center" px={6}>
+					<Text fontWeight="semibold" color="gray.700">No apartments in this category</Text>
+					<Text fontSize="sm" color="gray.500" mt={1}>Listings will appear here when they are added.</Text>
+				</Flex>
+			);
+		}
+
+		return (
+			<SimpleGrid columns={{ base: 1, lg: 2 }} spacing={4} py={4}>
+				{apartments.map((apartment) => {
+					const image = apartment.media?.images?.[0];
+					const location = [apartment.city || apartment.location?.city, apartment.state || apartment.location?.state]
+						.filter(Boolean)
+						.join(", ");
+
+					return (
+						<Box key={apartment._id} border="1px solid" borderColor="gray.200" borderRadius="xl" overflow="hidden" bg="white" _hover={{ borderColor: "yellow.400", boxShadow: "md" }} transition="all 0.2s ease">
+							<Flex direction={{ base: "column", sm: "row" }}>
+								{image ? (
+									<Image src={image} alt={apartment.apartmentName || "Apartment"} objectFit="cover" w={{ base: "100%", sm: "145px" }} h={{ base: "160px", sm: "145px" }} fallback={<Box w={{ base: "100%", sm: "145px" }} h={{ base: "160px", sm: "145px" }} bg="gray.100" />} />
+								) : (
+									<Flex w={{ base: "100%", sm: "145px" }} h={{ base: "160px", sm: "145px" }} bg="gray.100" align="center" justify="center" color="gray.400" fontSize="sm">No image</Flex>
+								)}
+								<VStack align="stretch" spacing={2} p={4} flex="1" minW={0}>
+									<HStack justify="space-between" align="start" spacing={2}>
+										<Text fontWeight="bold" color="gray.800" noOfLines={2}>{apartment.apartmentName || "Unnamed apartment"}</Text>
+										<Badge colorScheme={apartmentStatusColor(apartment.status)} textTransform="capitalize" flexShrink={0}>{(apartment.status || "unknown").replace("_", " ")}</Badge>
+									</HStack>
+									<Text fontSize="sm" color="gray.500" noOfLines={1}>{location || "Location not provided"}</Text>
+									<Text fontSize="sm" color="gray.600">{apartment.bedrooms || 0} bedrooms · {apartment.beds || 0} beds · {apartment.guests || 0} guests</Text>
+									<Divider />
+									<HStack justify="space-between" align="center">
+										<Text fontSize="sm" fontWeight="bold">{formatCurrency(apartment.defaultStayFee)} <Text as="span" fontWeight="normal" color="gray.500">/ night</Text></Text>
+										<Badge colorScheme={apartment.ownershipType === "imported" ? "blue" : "purple"} variant="subtle" textTransform="capitalize">{apartment.ownershipType || "owned"}</Badge>
+									</HStack>
+								</VStack>
+							</Flex>
+						</Box>
+					);
+				})}
+			</SimpleGrid>
 		);
 	};
 
@@ -537,6 +681,68 @@ const AgentsTable = () => {
 						>
 							{(selectedAgent?.status || "").toLowerCase() === "suspended" ? "Reactivate" : "Suspend"}
 						</Button>
+					</ModalFooter>
+				</ModalContent>
+			</Modal>
+
+			<Modal
+				isOpen={isApartmentsOpen}
+				onClose={closeApartmentsModal}
+				size={{ base: "full", md: "4xl" }}
+				scrollBehavior="inside"
+				isCentered
+			>
+				<ModalOverlay bg="blackAlpha.500" backdropFilter="blur(3px)" />
+				<ModalContent borderRadius={{ base: 0, md: "2xl" }} maxH={{ base: "100vh", md: "88vh" }}>
+					<ModalHeader borderBottom="1px solid" borderColor="gray.100" py={5} pr={12}>
+						<HStack spacing={3}>
+							<Avatar size="md" name={`${apartmentAgent?.firstName || ""} ${apartmentAgent?.lastName || ""}`} />
+							<Box minW={0}>
+								<Text fontSize={{ base: "lg", md: "xl" }} fontWeight="bold" noOfLines={1}>
+									{`${apartmentAgent?.firstName || ""} ${apartmentAgent?.lastName || ""}`.trim() || "Agent apartments"}
+								</Text>
+								<Text fontSize="sm" fontWeight="normal" color="gray.500">
+									{apartmentCounts.all} {apartmentCounts.all === 1 ? "listing" : "listings"} connected to this account
+								</Text>
+							</Box>
+						</HStack>
+					</ModalHeader>
+					<ModalCloseButton top={5} />
+					<ModalBody px={{ base: 4, md: 6 }} py={0}>
+						{apartmentsLoading ? (
+							<Flex minH="360px" align="center" justify="center" direction="column" gap={3}>
+								<Spinner size="lg" thickness="3px" color="yellow.500" />
+								<Text fontSize="sm" color="gray.500">Loading apartment portfolio…</Text>
+							</Flex>
+						) : apartmentsError ? (
+							<Flex minH="360px" align="center" justify="center" direction="column" textAlign="center" px={6}>
+								<Text fontWeight="bold" color="red.600">Unable to load apartments</Text>
+								<Text fontSize="sm" color="gray.500" mt={2} maxW="420px">{apartmentsError}</Text>
+								<Button mt={5} colorScheme="yellow" onClick={() => fetchAgentApartments(apartmentAgent)}>Try again</Button>
+							</Flex>
+						) : (
+							<Tabs colorScheme="yellow" isLazy>
+								<TabList position="sticky" top={0} bg="white" zIndex={1} pt={3}>
+									<Tab fontWeight="semibold">All ({apartmentCounts.all})</Tab>
+									<Tab fontWeight="semibold">Owned ({apartmentCounts.owned})</Tab>
+									<Tab fontWeight="semibold">Imported ({apartmentCounts.imported})</Tab>
+								</TabList>
+								<TabPanels>
+									<TabPanel px={0} py={0}>
+										<ApartmentCards apartments={agentApartments} />
+									</TabPanel>
+									<TabPanel px={0} py={0}>
+										<ApartmentCards apartments={agentApartments.filter((apartment) => apartment.ownershipType === "owned")} />
+									</TabPanel>
+									<TabPanel px={0} py={0}>
+										<ApartmentCards apartments={agentApartments.filter((apartment) => apartment.ownershipType === "imported")} />
+									</TabPanel>
+								</TabPanels>
+							</Tabs>
+						)}
+					</ModalBody>
+					<ModalFooter borderTop="1px solid" borderColor="gray.100">
+						<Button variant="ghost" onClick={closeApartmentsModal}>Close</Button>
 					</ModalFooter>
 				</ModalContent>
 			</Modal>

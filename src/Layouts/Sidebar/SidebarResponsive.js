@@ -43,6 +43,7 @@ import { SidebarHelp } from "./SidebarHelp";
 import { HiOutlineComputerDesktop } from "react-icons/hi2";
 import GlobalContext from "../../Context";
 import AfricartzLogo from "../../assets/logo.png";
+import DeploymentInfo from "../../components/DeploymentInfo";
 
 function SidebarResponsive(props) {
 	const { isAdmin, isStudent, profile } = useContext(GlobalContext);
@@ -454,6 +455,7 @@ function SidebarResponsive(props) {
 								)} */}
 							</Stack>
 							<SidebarHelp />
+							<DeploymentInfo />
 						</Box>
 					</DrawerBody>
 				</DrawerContent>

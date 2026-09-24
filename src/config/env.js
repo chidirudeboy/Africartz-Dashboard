@@ -12,6 +12,7 @@ export const ENV_CONFIG = {
   // App Configuration
   APP_NAME: process.env.REACT_APP_NAME || "AfricArtz Admin Dashboard",
   APP_VERSION: process.env.REACT_APP_VERSION || "1.0.0",
+  DEPLOYED_AT: process.env.REACT_APP_DEPLOYED_AT || null,
   ENVIRONMENT: process.env.REACT_APP_ENVIRONMENT || process.env.NODE_ENV || "production",
 
   // Feature Flags

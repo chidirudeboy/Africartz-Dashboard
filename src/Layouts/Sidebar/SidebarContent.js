@@ -1,7 +1,9 @@
-import { Box, Icon, Stack, Text, Divider, VStack } from "@chakra-ui/react";
+import { Box, Flex, Icon, Stack, Text, Divider, VStack } from "@chakra-ui/react";
 import React, { Fragment } from "react";
 import {
   FaBookOpen,
+  FaBullhorn,
+  FaHandshake,
   FaComments,
   FaNewspaper,
   FaUser,
@@ -16,10 +18,11 @@ import { TbLayoutDashboardFilled } from "react-icons/tb";
 import SideBarLink from "./SideBarLink";
 import { SidebarHelp } from "./SidebarHelp";
 import AfricartzLogo from "../../assets/logo.png";
+import DeploymentInfo from "../../components/DeploymentInfo";
 
 const SidebarContent = ({ logoText, isCollapsed }) => {
   return (
-    <>
+    <Flex direction="column" height="100%">
       {/* Logo Section */}
       <Box pt="20px" mb="20px">
         <Box
@@ -58,8 +61,9 @@ const SidebarContent = ({ logoText, isCollapsed }) => {
 
       {/* Navigation Links */}
       <Box
+        flex="1"
+        minH="0"
         overflowY="auto"
-        maxHeight="calc(100vh - 200px)"
         css={{
           '&::-webkit-scrollbar': {
             width: '4px',
@@ -139,6 +143,12 @@ const SidebarContent = ({ logoText, isCollapsed }) => {
               isCollapsed={isCollapsed}
             />
             <SideBarLink
+              text="Bargains"
+              icon={<Icon as={FaHandshake} w={5} h={5} />}
+              route="/admin/bargains"
+              isCollapsed={isCollapsed}
+            />
+            <SideBarLink
               text="Owner/Agents"
               icon={<Icon as={FaUserTag} w={5} h={5} />}
               route="admin/agents"
@@ -154,6 +164,12 @@ const SidebarContent = ({ logoText, isCollapsed }) => {
               text="Blog"
               icon={<Icon as={FaNewspaper} w={5} h={5} />}
               route="/admin/blogs"
+              isCollapsed={isCollapsed}
+            />
+            <SideBarLink
+              text="Announcements"
+              icon={<Icon as={FaBullhorn} w={5} h={5} />}
+              route="/admin/announcements"
               isCollapsed={isCollapsed}
             />
             <SideBarLink
@@ -174,7 +190,8 @@ const SidebarContent = ({ logoText, isCollapsed }) => {
 
       {/* Help Section - only show when expanded */}
       {!isCollapsed && <SidebarHelp />}
-    </>
+      <DeploymentInfo isCollapsed={isCollapsed} />
+    </Flex>
   );
 };
 

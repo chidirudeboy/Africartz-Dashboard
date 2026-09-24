@@ -19,6 +19,11 @@ export const AdminCreateBlogAPI = endpoint("/admin/blogs");
 export const AdminUpdateBlogAPI = (POST_ID) => endpoint(`/admin/blogs/${POST_ID}`);
 export const AdminChangeBlogStatusAPI = (POST_ID) => endpoint(`/admin/blogs/${POST_ID}/status`);
 export const AdminDeleteBlogAPI = (POST_ID) => endpoint(`/admin/blogs/${POST_ID}`);
+export const AdminGetAnnouncementsAPI = endpoint("/admin/announcements");
+export const AdminCreateAnnouncementAPI = endpoint("/admin/announcements");
+export const AdminUpdateAnnouncementAPI = (ANNOUNCEMENT_ID) => endpoint(`/admin/announcements/${ANNOUNCEMENT_ID}`);
+export const AdminChangeAnnouncementStatusAPI = (ANNOUNCEMENT_ID) => endpoint(`/admin/announcements/${ANNOUNCEMENT_ID}/status`);
+export const AdminDeleteAnnouncementAPI = (ANNOUNCEMENT_ID) => endpoint(`/admin/announcements/${ANNOUNCEMENT_ID}`);
 export const AdminGetStatsAPI = endpoint("/admin/stats");
 
 
@@ -29,6 +34,7 @@ export const AdminGetApprovedApartmentsAPI = endpoint("/admin/apartments/approve
 export const AdminGetCatalogueAPI = endpoint("/admin/apartments/catalogue");
 export const AdminGetApprovedApartmentByIdAPI = (APARTMENT_ID) => endpoint(`/admin/apartments/approved/${APARTMENT_ID}`);
 export const AdminToggleApartmentVerificationAPI = (APARTMENT_ID) => endpoint(`/admin/apartments/${APARTMENT_ID}/verification`);
+export const AdminToggleApartmentFeaturedAPI = (APARTMENT_ID) => endpoint(`/admin/apartments/${APARTMENT_ID}/featured`);
 export const AdminGetRemovedApartmentsAPI = endpoint("/admin/apartments/removed");
 export const AdminRemoveApartmentAPI = (APARTMENT_ID) => endpoint(`/admin/${APARTMENT_ID}/remove`);
 export const AdminGetResubmittedApartmentsAPI = endpoint("/admin/apartments/review");
@@ -51,6 +57,10 @@ export const AdminGetAllReservationsAPI = endpoint("/admin/reservations/all-agen
 export const AdminAcceptReservationAPI = (reservationId) => endpoint(`/admin/reservations/${reservationId}/accept`);
 export const AdminGetAllChatsAPI = endpoint("/chat/admin/chats");
 export const AdminGetChatMessagesAPI = (chatId) => endpoint(`/chat/admin/chats/${chatId}/messages`);
+export const AdminGetAllBargainsAPI = endpoint("/admin/bargains");
+export const AdminGetBargainByIdAPI = (bargainId) => endpoint(`/admin/bargains/${bargainId}`);
+export const AdminGetBargainMinimumNightsAPI = endpoint("/admin/settings/bargain-minimum-nights");
+export const AdminUpdateBargainMinimumNightsAPI = endpoint("/admin/settings/bargain-minimum-nights");
 
 
 // ≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠OLD≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠

@@ -212,6 +212,7 @@ const Index = () => {
 
 		setEditedApartment({
 			...selectedApartment,
+			location: { ...(selectedApartment.location || {}) },
 			optionalFees: selectedApartment.optionalFees || {},
 			contact_details: selectedApartment.contact_details || {},
 			accessDetails: selectedApartment.accessDetails || {},
@@ -230,6 +231,33 @@ const Index = () => {
 
 	const handleSaveEdit = async () => {
 		if (!editedApartment || !selectedApartment) return;
+
+		const latitudeInput = editedApartment.location?.lat;
+		const longitudeInput = editedApartment.location?.lng;
+		const hasLatitude = latitudeInput !== "" && latitudeInput !== null && latitudeInput !== undefined;
+		const hasLongitude = longitudeInput !== "" && longitudeInput !== null && longitudeInput !== undefined;
+
+		if (hasLatitude !== hasLongitude) {
+			toast({
+				title: "Both coordinates are required",
+				description: "Enter both latitude and longitude so the apartment can be placed accurately on the map.",
+				status: "warning",
+				duration: 4000,
+				isClosable: true,
+			});
+			return;
+		}
+
+		const latitude = hasLatitude ? Number(latitudeInput) : null;
+		const longitude = hasLongitude ? Number(longitudeInput) : null;
+		if (hasLatitude && (!Number.isFinite(latitude) || latitude < -90 || latitude > 90)) {
+			toast({ title: "Invalid latitude", description: "Latitude must be between -90 and 90.", status: "error", duration: 4000, isClosable: true });
+			return;
+		}
+		if (hasLongitude && (!Number.isFinite(longitude) || longitude < -180 || longitude > 180)) {
+			toast({ title: "Invalid longitude", description: "Longitude must be between -180 and 180.", status: "error", duration: 4000, isClosable: true });
+			return;
+		}
 
 		setUpdateLoading(true);
 		try {
@@ -252,6 +280,16 @@ const Index = () => {
 			}
 			if (editedApartment.state !== selectedApartment.state) {
 				updatePayload.state = editedApartment.state;
+			}
+			const selectedLatitude = selectedApartment.location?.lat;
+			const selectedLongitude = selectedApartment.location?.lng;
+			if (latitude !== (selectedLatitude ?? null) || longitude !== (selectedLongitude ?? null)) {
+				updatePayload.location = {
+					...(selectedApartment.location || {}),
+					...(editedApartment.location || {}),
+					lat: latitude,
+					lng: longitude,
+				};
 			}
 			if (editedApartment.bedrooms !== selectedApartment.bedrooms) {
 				updatePayload.bedrooms = editedApartment.bedrooms;
@@ -741,8 +779,41 @@ const Index = () => {
 																			onChange={(e) => setEditedApartment({ ...editedApartment, state: e.target.value })}
 																		/>
 																	</FormControl>
-																</Grid>
-																<Grid templateColumns={{ base: "1fr", md: "repeat(2, 1fr)" }} gap={4}>
+														</Grid>
+														<Box border="1px solid" borderColor="gray.200" borderRadius="lg" p={4} bg="white">
+															<Flex align="center" justify="space-between" gap={3} mb={1} flexWrap="wrap">
+																<HStack spacing={2}>
+																	<Icon as={FaMapMarkerAlt} color="#de9301" />
+																	<Text fontWeight="bold">Map coordinates</Text>
+																</HStack>
+																<Badge colorScheme={editedApartment.location?.lat !== undefined && editedApartment.location?.lat !== "" && editedApartment.location?.lng !== undefined && editedApartment.location?.lng !== "" ? "green" : "orange"}>
+																	{editedApartment.location?.lat !== undefined && editedApartment.location?.lat !== "" && editedApartment.location?.lng !== undefined && editedApartment.location?.lng !== "" ? "Location ready" : "Coordinates needed"}
+																</Badge>
+															</Flex>
+															<Text fontSize="sm" color="gray.600" mb={4}>
+																Used to recommend nearby activities accurately. Copy these values from Google Maps.
+															</Text>
+															<Grid templateColumns={{ base: "1fr", md: "1fr 1fr" }} gap={4}>
+																<FormControl>
+																	<FormLabel>Latitude</FormLabel>
+																	<NumberInput value={editedApartment.location?.lat ?? ""} min={-90} max={90} precision={6} clampValueOnBlur={false} onChange={(value) => setEditedApartment({ ...editedApartment, location: { ...(editedApartment.location || {}), lat: value } })}>
+																		<NumberInputField placeholder="e.g. 6.6018" />
+																	</NumberInput>
+																</FormControl>
+																<FormControl>
+																	<FormLabel>Longitude</FormLabel>
+																	<NumberInput value={editedApartment.location?.lng ?? ""} min={-180} max={180} precision={6} clampValueOnBlur={false} onChange={(value) => setEditedApartment({ ...editedApartment, location: { ...(editedApartment.location || {}), lng: value } })}>
+																		<NumberInputField placeholder="e.g. 3.3515" />
+																	</NumberInput>
+																</FormControl>
+															</Grid>
+															{editedApartment.location?.lat !== undefined && editedApartment.location?.lat !== "" && editedApartment.location?.lng !== undefined && editedApartment.location?.lng !== "" && (
+																<Button mt={4} size="sm" variant="outline" colorScheme="orange" as="a" href={`https://www.google.com/maps?q=${editedApartment.location.lat},${editedApartment.location.lng}`} target="_blank" rel="noopener noreferrer">
+																	Check on Google Maps
+																</Button>
+															)}
+														</Box>
+														<Grid templateColumns={{ base: "1fr", md: "repeat(2, 1fr)" }} gap={4}>
 																	<FormControl>
 																		<FormLabel>Bedrooms</FormLabel>
 																		<NumberInput value={editedApartment.bedrooms || 0} min={0} onChange={(value) => setEditedApartment({ ...editedApartment, bedrooms: parseInt(value) || 0 })}>
@@ -791,8 +862,12 @@ const Index = () => {
 																	<Icon as={FaMapMarkerAlt} color="red.500" mr={2} />
 																	<Text>
 																		<strong>Address:</strong> {selectedApartment.address}, {selectedApartment.city}, {selectedApartment.state}
-																	</Text>
-																</Flex>
+																</Text>
+															</Flex>
+															<Flex align="center">
+																<Icon as={FaMapMarkerAlt} color="#de9301" mr={2} />
+																<Text><strong>Coordinates:</strong> {selectedApartment.location?.lat != null && selectedApartment.location?.lng != null ? `${selectedApartment.location.lat}, ${selectedApartment.location.lng}` : "Not added"}</Text>
+															</Flex>
 																<Flex align="center">
 																	<Icon as={FaBed} color="blue.500" mr={2} />
 																	<Text><strong>Bedrooms:</strong> {selectedApartment.bedrooms}</Text>

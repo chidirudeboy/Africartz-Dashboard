@@ -76,6 +76,7 @@ import {
 import { APARTMENT_ENDPOINTS } from "../../../api/endpoints";
 import { formatPhoneNumber } from "../../../utils/phone";
 import { createUploadService } from "../../../utils/uploadService";
+import ApartmentLocationLookup from "../../../components/ApartmentLocationLookup";
 import { useSearchParams } from "react-router-dom";
 
 const ApprovedApartments = () => {
@@ -2404,8 +2405,9 @@ const ApprovedApartments = () => {
 																</Badge>
 															</Flex>
 															<Text fontSize="sm" color="gray.600" mb={4}>
-																Used to recommend nearby activities accurately. Copy these values from Google Maps.
+																Used to recommend nearby activities accurately. Find them from the address or enter them manually.
 															</Text>
+															<ApartmentLocationLookup apartment={editedApartment} onChange={setEditedApartment} toast={toast} />
 															<Grid templateColumns={{ base: "1fr", md: "1fr 1fr" }} gap={4}>
 																<FormControl>
 																	<FormLabel>Latitude</FormLabel>

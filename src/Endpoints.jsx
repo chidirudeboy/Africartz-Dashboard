@@ -45,6 +45,8 @@ export const AdminRejectResubmittedApartmentAPI = (APARTMENT_ID) => endpoint(`/a
 export const AdminUpdateApartmentAPI = (APARTMENT_ID) => endpoint(`/apartment/admin/updateApartment/${APARTMENT_ID}`);
 export const AdminApprovedApartment = (APARTMENT_ID) => endpoint(`/admin/apartments/${APARTMENT_ID}/status`);
 export const AdminRejectApartment = (APARTMENT_ID) => endpoint(`/admin/${APARTMENT_ID}/reject`);
+export const PlacesAutocompleteAPI = endpoint("/places/autocomplete");
+export const PlaceDetailsAPI = (PLACE_ID) => endpoint(`/places/details/${encodeURIComponent(PLACE_ID)}`);
 
 export const AdminGetBookingsSummaryAPI = endpoint("/admin/bookings");
 export const AdminGetAllBookingsAPI = endpoint("/admin/bookings/all");

@@ -59,6 +59,7 @@ import { Column } from "primereact/column";
 import { DataTable } from "primereact/datatable";
 import axios from "axios";
 import { formatPhoneNumber } from "../../../utils/phone";
+import ApartmentLocationLookup from "../../../components/ApartmentLocationLookup";
 import {
 	AdminGetPendingApartmentsAPI,
 	AdminGetPendingApartmentByIdAPI,
@@ -791,8 +792,9 @@ const Index = () => {
 																</Badge>
 															</Flex>
 															<Text fontSize="sm" color="gray.600" mb={4}>
-																Used to recommend nearby activities accurately. Copy these values from Google Maps.
+																Used to recommend nearby activities accurately. Find them from the address or enter them manually.
 															</Text>
+															<ApartmentLocationLookup apartment={editedApartment} onChange={setEditedApartment} toast={toast} />
 															<Grid templateColumns={{ base: "1fr", md: "1fr 1fr" }} gap={4}>
 																<FormControl>
 																	<FormLabel>Latitude</FormLabel>
